@@ -151,6 +151,11 @@ public class Task {
 
 ## 4. CloudSim Plus Integration Details
 - **Engine**: CloudSim Plus `8.0.0`
-- **Compiler/Target**: Java 21 LTS
-- **Adapter**: `TaskCloudletAdapter` creates CloudSim `CloudletSimple` instances preserving mapping to `Task`.
+- **Compiler/Target**: Java 21 LTS (`maven.compiler.release=21`)
+- **Infrastructure Layer** (Phase 3 Verified):
+  - `CloudSimEnvironment`: Encapsulates `CloudSimPlus`, `DatacenterSimple`, `HostSimple`, `DatacenterBrokerSimple`, and `VmSimple` provisioning.
+  - `SimulationScenario`: Centralized hardware scenario configuration (default: 2 physical hosts @ 12,000 MIPS each, 5 heterogeneous VMs: 500 - 2500 MIPS).
+  - `CloudVmSpec`: Immutable resource specification record validating positive MIPS, RAM, BW, and Storage.
+  - Full details documented in `docs/SIMULATION_ENVIRONMENT.md`.
+- **Adapter** (Planned Phase 4): `TaskCloudletAdapter` bridges the common `Task` model with CloudSim `CloudletSimple` instances.
 - **Event Listeners**: On-finish listeners record clock times, compute wait/turnaround, determine deadline hit/miss, and record VM busy duration.

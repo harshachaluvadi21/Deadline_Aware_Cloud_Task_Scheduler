@@ -20,7 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <cloudsimplus.version>8.0.0</cloudsimplus.version>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
-        <logback.version>1.4.14</logback.version>
+        <logback.version>1.4.6</logback.version>
     </properties>
 
     <dependencies>
@@ -31,10 +31,15 @@
             <version>${cloudsimplus.version}</version>
         </dependency>
 
-        <!-- Logging Implementation for CloudSim Plus / SLF4J -->
+        <!-- Logging Implementation for CloudSim Plus / SLF4J (aligned with CloudSim Plus 8.0.0) -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
             <version>${logback.version}</version>
         </dependency>
 

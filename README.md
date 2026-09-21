@@ -43,7 +43,16 @@ An academic research mini-project extending the priority-based heuristic task sc
 
 ---
 
-## 4. Building the Project
+## 4. Simulation Environment Infrastructure (Phase 3 Verified)
+The project utilizes a centralized, modular simulation infrastructure built on CloudSim Plus 8.0.0:
+- **Datacenter**: 2 physical hosts, each with 4 PEs (3,000 MIPS per PE = 12,000 MIPS per host), 32 GB RAM, 10 Gbps Bandwidth, 1 TB Storage.
+- **Virtual Machines**: 5 heterogeneous VMs spanning 500 to 2,500 MIPS, modeling tiered cloud service rates for queuing evaluation.
+- **Lifecycle Management**: `CloudSimEnvironment` coordinates non-oversubscribed host provisioning and discrete-event simulation execution.
+- See [`docs/SIMULATION_ENVIRONMENT.md`](docs/SIMULATION_ENVIRONMENT.md) and [`docs/CLOUDSIM_PLUS_API_VERIFICATION.md`](docs/CLOUDSIM_PLUS_API_VERIFICATION.md) for full architectural documentation.
+
+---
+
+## 5. Building and Testing the Project
 ```bash
 # Compile code
 mvn clean compile

@@ -37,9 +37,9 @@ The objective is to investigate whether deadline-aware scheduling can reduce dea
 | Phase | Description | Status | Deliverables |
 |---|---|---|---|
 | **Phase 0** | Workspace inspection, requirements analysis, architecture, project plan, and design decision identification | **COMPLETED** | `PROJECT_PLAN.md`, `ARCHITECTURE.md`, `DESIGN_DECISIONS.md` |
-| **Phase 1** | Maven project setup, directory scaffolding, `.gitignore`, initial Git commit | **IN PROGRESS** | `pom.xml`, project skeleton, Git initialized |
-| **Phase 2** | CloudSim Plus 8.0.0 dependency setup and verification on JDK 21 | PENDING | Verified pom.xml dependencies and imports |
-| **Phase 3** | CloudSim Plus simulation environment configuration (Datacenter, Hosts, VMs, Cloudlets) | PENDING | `CloudSimEnvironment.java`, resource configs |
+| **Phase 1** | Maven project setup, directory scaffolding, `.gitignore`, initial Git commit | **COMPLETED** | `pom.xml`, project skeleton, Git initialized |
+| **Phase 2** | CloudSim Plus 8.0.0 dependency setup and verification on JDK 21 | **COMPLETED** | Verified `pom.xml` dependencies, `CloudSimCompatibilityTest.java`, `docs/CLOUDSIM_PLUS_API_VERIFICATION.md` |
+| **Phase 3** | CloudSim Plus simulation environment configuration (Datacenter, Hosts, VMs) | **COMPLETED** | `CloudSimEnvironment.java`, `SimulationScenario.java`, `CloudVmSpec.java`, `docs/SIMULATION_ENVIRONMENT.md` |
 | **Phase 4** | Common Task Data Model (shared identically by Baseline & Proposed) | PENDING | `Task.java`, `TaskStatus.java` |
 | **Phase 5** | Standalone Fibonacci Heap implementation & rigorous unit tests | PENDING | `FibonacciHeap.java`, `FibonacciNode.java`, heap tests |
 | **Phase 6** | Baseline Priority Scheduler reproducing IEEE 2023 PAT algorithm & Waiting Time Matrix | PENDING | `WaitingTimeControlMatrix.java`, `PriorityAssignmentToTasks.java`, `BaselineScheduler.java` |
