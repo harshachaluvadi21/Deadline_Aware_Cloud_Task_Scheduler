@@ -1,0 +1,14 @@
+scenario,taskCount,seed,workloadFile
+NORMAL_LOAD,5,1001,normal_load_5_seed1001.csv
+NORMAL_LOAD,20,1001,normal_load_20_seed1001.csv
+NORMAL_LOAD,50,1001,normal_load_50_seed1001.csv
+NORMAL_LOAD,100,1001,normal_load_100_seed1001.csv
+HIGH_LOAD,20,2001,high_load_20_seed2001.csv
+HIGH_LOAD,50,2001,high_load_50_seed2001.csv
+HIGH_LOAD,100,2001,high_load_100_seed2001.csv
+DEADLINE_SENSITIVE,20,3001,deadline_sensitive_20_seed3001.csv
+DEADLINE_SENSITIVE,50,3001,deadline_sensitive_50_seed3001.csv
+DEADLINE_SENSITIVE,100,3001,deadline_sensitive_100_seed3001.csv
+MIXED,20,4001,mixed_20_seed4001.csv
+MIXED,50,4001,mixed_50_seed4001.csv
+MIXED,100,4001,mixed_100_seed4001.csv

@@ -1,10 +1,14 @@
-# Maven target directory
-target/
+# Maven / Java build
+backend/target/
 *.war
 *.ear
 *.nar
 
-# IDE specific files
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
+
+# IDE files
 .idea/
 .vscode/
 *.iml
@@ -15,10 +19,21 @@ target/
 *.iws
 
 # OS files
+.DS_Store
 Thumbs.db
 Desktop.ini
-.DS_Store
 
-# Temporary / Log files
+# Logs
 *.log
+
+# Environment / secrets
+.env
+.env.*
+
+# Scratch / temp
 scratch/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
