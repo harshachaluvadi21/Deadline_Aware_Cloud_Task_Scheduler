@@ -223,7 +223,7 @@ export const SimulatorPage: React.FC = () => {
         <div className="page-header">
           <div>
             <h1 className="page-title">
-              Cloud Scheduler <span className="gradient-text">Simulator</span>
+              Cloud Scheduler Simulator
             </h1>
             <p className="page-desc">
               Define a workload, choose a scheduling method, and analyze results.
@@ -241,7 +241,13 @@ export const SimulatorPage: React.FC = () => {
         {/* Error */}
         {errorMsg && (
           <div className="alert alert-error" style={{ marginBottom: 20 }}>
-            <span className="alert-icon">⚠</span>
+            <span className="alert-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </span>
             <div>
               <strong>{errorMsg}</strong>
               {errorDetails.length > 0 && (
@@ -315,7 +321,7 @@ export const SimulatorPage: React.FC = () => {
               {isLoading ? (
                 <><span className="spinner" /> Running Simulation…</>
               ) : (
-                '▶ Run Cloud Simulation'
+                'Run Cloud Simulation'
               )}
             </button>
             {tasks.length === 0 && !isLoading && (
@@ -329,8 +335,12 @@ export const SimulatorPage: React.FC = () => {
         {/* Success banner */}
         {simulationSuccess && (
           <div className="alert alert-success fade-in" style={{ marginBottom: 20 }}>
-            <span className="alert-icon">✔</span>
-            <span>Simulation completed successfully — results are shown below.</span>
+            <span className="alert-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+            <span>Simulation completed successfully. Results are shown below.</span>
           </div>
         )}
 

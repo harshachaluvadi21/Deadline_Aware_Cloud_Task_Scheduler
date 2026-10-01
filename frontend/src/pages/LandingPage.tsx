@@ -79,7 +79,7 @@ const HeroPreview: React.FC = () => {
           <div className="hero-preview-dot" style={{ background: '#ef4444' }} />
           <div className="hero-preview-dot" style={{ background: '#f59e0b' }} />
           <div className="hero-preview-dot" style={{ background: '#10b981' }} />
-          <span className="hero-preview-title">Simulation Results — Deadline-Aware</span>
+          <span className="hero-preview-title">Simulation Results: Deadline-Aware</span>
         </div>
 
         <div className="hero-preview-body">
@@ -268,9 +268,9 @@ export const LandingPage: React.FC = () => {
                 deadline receive a higher composite score and are dispatched sooner.
               </p>
               <ul className="scheduler-feature-list">
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Task priority — weight 0.35</li>
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Deadline urgency — weight 0.50</li>
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Waiting factor — weight 0.15</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Task priority (weight: 0.35)</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Deadline urgency (weight: 0.50)</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Waiting factor (weight: 0.15)</li>
                 <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Fibonacci Heap priority queue</li>
               </ul>
             </div>

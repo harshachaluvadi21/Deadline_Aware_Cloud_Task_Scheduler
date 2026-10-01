@@ -25,7 +25,9 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
   return (
     <div className="filters-bar">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: '0.9rem' }}>🔍</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
         <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>Filters</span>
       </div>
 

@@ -35,7 +35,7 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
       <div className="task-table-actions">
         {onLoadDemo && (
           <button className="btn btn-secondary btn-sm" onClick={onLoadDemo} disabled={disabled} type="button">
-            ✨ Load Demo
+            Load Demo Workload
           </button>
         )}
         <button className="btn btn-ghost btn-sm" onClick={onLoadSample} disabled={disabled} type="button">
@@ -43,7 +43,7 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
         </button>
         {onOpenUploadModal && (
           <button className="btn btn-ghost btn-sm" onClick={onOpenUploadModal} disabled={disabled} type="button">
-            📁 Upload CSV
+            Upload CSV
           </button>
         )}
         <button className="btn btn-primary btn-sm" onClick={handleAddTask} disabled={disabled} type="button">
@@ -58,9 +58,9 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
 
       {/* Hint */}
       <div className="alert alert-info" style={{ marginBottom: 16 }}>
-        <span className="alert-icon">💡</span>
+        <span className="alert-icon">ℹ</span>
         <span>
-          <strong>New here?</strong> Click <em>"✨ Load Demo"</em> to load the 10-task reference workload and run both schedulers instantly.
+          <strong>Reference workload available:</strong> Click <em>"Load Demo Workload"</em> to load the pre-configured 10-task benchmark and compare schedulers immediately.
         </span>
       </div>
 

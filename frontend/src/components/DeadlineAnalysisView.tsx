@@ -21,7 +21,7 @@ export function classifyTaskDeadline(
   if (deadlineMissed === true || status === 'MISSED_DEADLINE') {
     return {
       category: 'MISSED_DEADLINE',
-      label: '🔴 Missed Deadline',
+      label: 'Missed Deadline',
       badgeClass: 'badge-missed-deadline'
     };
   }
@@ -31,19 +31,19 @@ export function classifyTaskDeadline(
   if (Math.abs(diff) < 0.0001) {
     return {
       category: 'AT_DEADLINE',
-      label: '🔵 Completed Exactly At Deadline',
+      label: 'Completed Exactly At Deadline',
       badgeClass: 'badge-at-deadline'
     };
   } else if (diff < 0) {
     return {
       category: 'BEFORE_DEADLINE',
-      label: '🟢 Completed Before Deadline',
+      label: 'Completed Before Deadline',
       badgeClass: 'badge-before-deadline'
     };
   } else {
     return {
       category: 'MISSED_DEADLINE',
-      label: '🔴 Missed Deadline',
+      label: 'Missed Deadline',
       badgeClass: 'badge-missed-deadline'
     };
   }
@@ -175,15 +175,15 @@ export const DeadlineAnalysisView: React.FC<DeadlineAnalysisViewProps> = ({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '0.83rem', color: '#cbd5e1' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '10px', height: '10px', backgroundColor: '#10b981', borderRadius: '2px' }} />
-            🟢 Completed Before Deadline: <strong>{beforeCount}</strong> ({beforePct}%)
+            Completed Before Deadline: <strong>{beforeCount}</strong> ({beforePct}%)
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '10px', height: '10px', backgroundColor: '#38bdf8', borderRadius: '2px' }} />
-            🔵 Completed Exactly At Deadline: <strong>{atCount}</strong> ({atPct}%)
+            Completed Exactly At Deadline: <strong>{atCount}</strong> ({atPct}%)
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '10px', height: '10px', backgroundColor: '#ef4444', borderRadius: '2px' }} />
-            🔴 Missed Deadline: <strong>{missedCount}</strong> ({missedPct}%)
+            Missed Deadline: <strong>{missedCount}</strong> ({missedPct}%)
           </span>
         </div>
       </div>

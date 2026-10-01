@@ -26,12 +26,12 @@ export const WorkloadSummaryCards: React.FC<WorkloadSummaryCardsProps> = ({
   }
 
   const cards = [
-    { label: 'Total Tasks', value: totalTasks.toString(), description: 'Number of tasks', icon: '📋' },
-    { label: 'Virtual Machines', value: `${vmCount} VMs`, description: 'VMs available for execution', icon: '🖥️' },
-    { label: 'Average Priority', value: `${avgPriority} / 10`, description: 'Average task priority', icon: '⚡' },
-    { label: 'Avg Execution Time', value: `${avgExecution} s`, description: 'Average execution duration', icon: '⏱️' },
-    { label: 'Earliest Arrival', value: `${earliestArrival} s`, description: 'First task arrival', icon: '⏳' },
-    { label: 'Latest Deadline', value: `${latestDeadline} s`, description: 'Latest task deadline', icon: '🎯' },
+    { label: 'Total Tasks', value: totalTasks.toString(), description: 'Number of tasks' },
+    { label: 'Virtual Machines', value: `${vmCount} VMs`, description: 'VMs available for execution' },
+    { label: 'Average Priority', value: `${avgPriority} / 10`, description: 'Average task priority' },
+    { label: 'Avg Execution Time', value: `${avgExecution} s`, description: 'Average execution duration' },
+    { label: 'Earliest Arrival', value: `${earliestArrival} s`, description: 'First task arrival' },
+    { label: 'Latest Deadline', value: `${latestDeadline} s`, description: 'Latest task deadline' },
   ];
 
   return (
@@ -62,11 +62,10 @@ export const WorkloadSummaryCards: React.FC<WorkloadSummaryCardsProps> = ({
               justifyContent: 'space-between'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ marginBottom: '6px' }}>
               <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 500 }}>
                 {c.label}
               </span>
-              <span style={{ fontSize: '1.05rem' }}>{c.icon}</span>
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', marginBottom: '2px' }}>
               {c.value}

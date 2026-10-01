@@ -13,7 +13,7 @@ export const AboutPage: React.FC = () => {
               alignItems: 'center',
               gap: 8,
               padding: '4px 12px',
-              borderRadius: 999,
+              borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-strong)',
               background: 'var(--accent-dim)',
               color: 'var(--accent)',

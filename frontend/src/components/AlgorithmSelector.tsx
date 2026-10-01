@@ -10,19 +10,19 @@ interface Props {
 const OPTIONS: { value: AlgorithmMode; title: string; desc: string; badge: string }[] = [
   {
     value: 'BASELINE',
-    title: '📊 Standard Priority',
+    title: 'Standard Priority',
     desc: 'Run only the baseline IEEE priority-based scheduler.',
     badge: 'Baseline',
   },
   {
     value: 'PROPOSED',
-    title: '⏰ Deadline-Aware',
+    title: 'Deadline-Aware',
     desc: 'Run only the proposed deadline-urgency scheduler.',
     badge: 'Proposed',
   },
   {
     value: 'COMPARE',
-    title: '⚖️ Compare Both',
+    title: 'Compare Both',
     desc: 'Run both schedulers on identical workloads for side-by-side analysis.',
     badge: 'Recommended',
   },
