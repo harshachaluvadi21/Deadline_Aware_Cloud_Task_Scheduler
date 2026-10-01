@@ -1,150 +1,198 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+/* ── Feature data — no emoji icons ── */
 const features = [
   {
-    icon: '⏰',
-    bg: 'rgba(0,212,255,0.1)',
-    border: 'rgba(0,212,255,0.2)',
     title: 'Deadline-Aware Scheduling',
-    desc: 'Dynamically prioritizes tasks using deadline urgency alongside task priority and waiting-time factors for smarter, time-sensitive scheduling.',
+    desc: 'Prioritizes tasks using a composite score: deadline urgency (50%), task priority (35%), and waiting time (15%). Time-critical jobs are scheduled before their deadlines are breached.',
   },
   {
-    icon: '📊',
-    bg: 'rgba(124,58,237,0.1)',
-    border: 'rgba(124,58,237,0.2)',
     title: 'Priority-Based Baseline',
-    desc: 'An IEEE-inspired priority scheduling approach serving as the controlled comparison baseline for the proposed method.',
+    desc: 'A priority and waiting-time scheduler used as a controlled comparison. Follows existing IEEE-referenced approaches for fair evaluation against the proposed method.',
   },
   {
-    icon: '🌀',
-    bg: 'rgba(192,38,211,0.1)',
-    border: 'rgba(192,38,211,0.2)',
-    title: 'Fibonacci Heap',
-    desc: 'Both schedulers use a Fibonacci Heap priority queue, providing O(log n) task extraction for efficient scheduling.',
+    title: 'Fibonacci Heap Queue',
+    desc: 'Both schedulers use a Fibonacci Heap for task ordering, giving O(log n) extraction time for the highest-priority job in the ready queue.',
   },
   {
-    icon: '☁️',
-    bg: 'rgba(99,102,241,0.1)',
-    border: 'rgba(99,102,241,0.2)',
     title: 'CloudSim Plus Engine',
-    desc: 'Simulates a real cloud environment with 4 configurable virtual machines running your submitted task workload.',
+    desc: 'Runs on CloudSim Plus 8.0.0, simulating a 4-VM cloud datacenter. Each submitted task is assigned to a VM, executed, and measured against its deadline.',
   },
   {
-    icon: '📈',
-    bg: 'rgba(245,158,11,0.1)',
-    border: 'rgba(245,158,11,0.2)',
-    title: '6 Performance Metrics',
-    desc: 'Analyze makespan, waiting time, turnaround time, throughput, deadline miss rate, and VM utilization.',
+    title: 'Six Performance Metrics',
+    desc: 'Reports makespan, average waiting time, average turnaround time, throughput, deadline miss rate, and VM utilization for every simulation run.',
   },
   {
-    icon: '⚖️',
-    bg: 'rgba(16,185,129,0.1)',
-    border: 'rgba(16,185,129,0.2)',
-    title: 'Controlled Comparison',
-    desc: 'Run both schedulers on identical workloads for a fair, side-by-side objective scientific analysis.',
+    title: 'Side-by-Side Comparison',
+    desc: 'Submit one workload and run both schedulers on it simultaneously. Results appear in a parallel view with a pairwise difference table for each metric.',
   },
 ];
 
 const steps = [
-  { n: '01', title: 'Define Workload', desc: 'Enter tasks manually, load a demo, or upload a CSV with priority, arrival time, execution time, and deadline.' },
-  { n: '02', title: 'Choose Scheduler', desc: 'Select Standard Priority, Deadline-Aware, or run both for a full side-by-side comparison.' },
-  { n: '03', title: 'Run Simulation', desc: 'The CloudSim Plus engine executes your workload across 4 virtual machines in the cloud model.' },
-  { n: '04', title: 'Analyze Results', desc: 'View per-VM task timelines, deadline classification, and resource utilization charts.' },
-  { n: '05', title: 'Compare & Export', desc: 'Compare makespan, throughput, deadline miss rate, and export results as CSV.' },
+  { n: '1', title: 'Define tasks', desc: 'Enter tasks manually, load the built-in demo workload, or upload a CSV file. Each task has a priority, arrival time, execution time, and deadline.' },
+  { n: '2', title: 'Choose a scheduler', desc: 'Select Standard Priority, Deadline-Aware, or both. Running both produces a side-by-side comparison.' },
+  { n: '3', title: 'Run simulation', desc: 'The CloudSim Plus engine assigns tasks to VMs, tracks execution timing, and records whether each deadline was met.' },
+  { n: '4', title: 'Analyze results', desc: 'View per-VM execution timelines, deadline classification bars, utilization stats, and a full task results table.' },
+  { n: '5', title: 'Export', desc: 'Download task results and metric summaries as CSV for offline analysis or academic reporting.' },
 ];
 
-const metrics = [
-  { name: 'Makespan', desc: 'Total time from first task arrival to last task completion across the entire workload.' },
-  { name: 'Avg. Waiting Time', desc: 'Average time tasks spend in the queue waiting for a VM to become available.' },
-  { name: 'Avg. Turnaround Time', desc: 'Average time from task arrival to task completion, including wait and execution.' },
+const metricsInfo = [
+  { name: 'Makespan', desc: 'Time from the first task arriving until the last task finishes.' },
+  { name: 'Avg. Waiting Time', desc: 'Average time each task spent in the queue before a VM picked it up.' },
+  { name: 'Avg. Turnaround Time', desc: 'Average time from task arrival to task completion, including both wait and execution.' },
   { name: 'Throughput', desc: 'Number of tasks completed per unit of simulation time.' },
-  { name: 'Deadline Miss Rate', desc: 'Percentage of tasks that completed after their specified deadline time.' },
-  { name: 'VM Utilization', desc: 'Fraction of available VM execution capacity used across the simulation run.' },
+  { name: 'Deadline Miss Rate', desc: 'Percentage of tasks that completed after their stated deadline.' },
+  { name: 'VM Utilization', desc: 'Share of total available VM time actually spent executing tasks.' },
 ];
+
+/* ── Scheduler preview card — shows realistic simulation output ── */
+const HeroPreview: React.FC = () => {
+  // Representative output from the demo 10-task workload
+  const metrics = [
+    { label: 'Makespan', value: '28.40 s', sub: 'total time' },
+    { label: 'Miss Rate', value: '0.0%', sub: 'deadlines met', color: 'var(--success)' },
+    { label: 'Utilization', value: '71.3%', sub: 'VM usage', color: 'var(--cyan)' },
+  ];
+
+  // Simplified timeline: 4 VMs, task blocks as % of makespan
+  const vms = [
+    { id: 'VM 0', blocks: [{ left: '0%', width: '55%', color: '#3b82f6', label: 'T0' }] },
+    { id: 'VM 1', blocks: [
+      { left: '3.5%', width: '28%', color: '#10b981', label: 'T1' },
+      { left: '36%', width: '23%', color: '#6366f1', label: 'T3' },
+    ]},
+    { id: 'VM 2', blocks: [
+      { left: '8.8%', width: '49%', color: '#f59e0b', label: 'T2' },
+    ]},
+    { id: 'VM 3', blocks: [
+      { left: '21%', width: '22.5%', color: '#a855f7', label: 'T5' },
+      { left: '35%', width: '17.5%', color: '#0ea5e9', label: 'T7' },
+    ]},
+  ];
+
+  return (
+    <div className="hero-preview">
+      <div className="hero-preview-card">
+        {/* Title bar */}
+        <div className="hero-preview-bar">
+          <div className="hero-preview-dot" style={{ background: '#ef4444' }} />
+          <div className="hero-preview-dot" style={{ background: '#f59e0b' }} />
+          <div className="hero-preview-dot" style={{ background: '#10b981' }} />
+          <span className="hero-preview-title">Simulation Results — Deadline-Aware</span>
+        </div>
+
+        <div className="hero-preview-body">
+          {/* Metric row */}
+          <div className="hero-metric-row">
+            {metrics.map(m => (
+              <div className="hero-metric" key={m.label}>
+                <div className="hero-metric-label">{m.label}</div>
+                <div className="hero-metric-value" style={m.color ? { color: m.color } : {}}>
+                  {m.value}
+                </div>
+                <div className="hero-metric-sub">{m.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* VM Timeline */}
+          <div className="hero-timeline-label">Execution Timeline</div>
+          {vms.map(vm => (
+            <div className="hero-vm-row" key={vm.id}>
+              <span className="hero-vm-id">{vm.id}</span>
+              <div className="hero-vm-track">
+                {vm.blocks.map(b => (
+                  <div
+                    key={b.label}
+                    className="hero-vm-block"
+                    style={{
+                      left: b.left,
+                      width: b.width,
+                      background: b.color,
+                      opacity: 0.85,
+                    }}
+                  >
+                    {b.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Legend */}
+          <div className="hero-badges-row">
+            <div className="hero-badge-item">
+              <div className="hero-badge-dot" style={{ background: 'var(--success)' }} />
+              <span>5 tasks completed before deadline</span>
+            </div>
+            <div className="hero-badge-item">
+              <div className="hero-badge-dot" style={{ background: 'var(--danger)' }} />
+              <span>0 missed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const LandingPage: React.FC = () => {
   return (
     <main className="landing-page">
       {/* ── HERO ── */}
       <section className="hero">
-        {/* Decorative orb */}
-        <div className="hero-orb">
-          <div className="hero-orb-inner" />
-        </div>
-
-        <div className="container">
-          <div className="hero-content">
+        <div className="container" style={{ display: 'contents' }}>
+          {/* Left content */}
+          <div className="hero-content" style={{ paddingLeft: 24, paddingRight: 12 }}>
             <div className="hero-eyebrow">
-              <span className="eyebrow">⚡ Cloud Scheduling Research Platform</span>
+              <span className="eyebrow">Cloud Scheduling Research Tool</span>
             </div>
 
             <h1 className="hero-title">
-              <span className="gradient-text">Deadline-Aware</span>
-              <br />
+              Deadline-Aware<br />
               Cloud Task Scheduler
             </h1>
 
             <p className="hero-subtitle">
-              Simulate cloud workloads, intelligently prioritize tasks with deadline urgency,
-              and analyze scheduling performance across virtual machines in real time.
+              A simulation tool for studying how deadline-urgency scheduling compares to
+              standard priority scheduling in a cloud environment. Submit a task workload,
+              run both algorithms, and compare six performance metrics side by side.
             </p>
 
             <div className="hero-cta">
-              <Link to="/simulator" className="btn btn-primary btn-xl">
-                🚀 Launch Simulator
+              <Link to="/simulator" className="btn btn-primary btn-lg">
+                Open Simulator
               </Link>
               <Link to="/about" className="btn btn-secondary btn-lg">
-                How It Works →
+                How It Works
               </Link>
             </div>
+          </div>
 
-            {/* Pipeline visualization */}
-            <div className="pipeline-visual fade-in">
-              <div className="pipeline-label">Scheduling Pipeline</div>
-              <div className="pipeline-nodes">
-                {[
-                  { icon: '📋', label: 'Tasks', bg: 'rgba(0,212,255,0.1)', border: 'rgba(0,212,255,0.25)' },
-                  { icon: '🧠', label: 'Priority Engine', bg: 'rgba(124,58,237,0.1)', border: 'rgba(124,58,237,0.25)' },
-                  { icon: '⏰', label: 'Deadline Score', bg: 'rgba(192,38,211,0.1)', border: 'rgba(192,38,211,0.25)' },
-                  { icon: '🌀', label: 'Fibonacci Heap', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.25)' },
-                  { icon: '🖥️', label: 'VM Cluster', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
-                ].map((node, i, arr) => (
-                  <React.Fragment key={node.label}>
-                    <div className="pipeline-node">
-                      <div className="pipeline-node-icon" style={{ background: node.bg, borderColor: node.border }}>
-                        {node.icon}
-                      </div>
-                      <span className="pipeline-node-label">{node.label}</span>
-                    </div>
-                    {i < arr.length - 1 && <span className="pipeline-arrow">→</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
+          {/* Right: live preview card */}
+          <div style={{ paddingRight: 24, paddingLeft: 12 }}>
+            <HeroPreview />
           </div>
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
+      {/* ── WHAT IT DOES ── */}
       <section className="features-section">
         <div className="container">
           <div style={{ textAlign: 'center' }}>
-            <div className="section-label">Platform Capabilities</div>
+            <div className="section-label">Capabilities</div>
             <h2 className="section-title" style={{ margin: '0 auto 12px' }}>
-              Built for Cloud Scheduling Analysis
+              What the simulator covers
             </h2>
             <p className="section-subtitle" style={{ margin: '0 auto' }}>
-              A complete simulation platform for studying and comparing task scheduling approaches.
+              Built for academic evaluation of cloud scheduling algorithms using CloudSim Plus.
             </p>
           </div>
 
           <div className="features-grid">
-            {features.map((f, i) => (
-              <div className="feature-card fade-in-delay-1" key={f.title} style={{ animationDelay: `${i * 0.07}s` }}>
-                <div className="feature-icon" style={{ background: f.bg, borderColor: f.border }}>
-                  {f.icon}
-                </div>
+            {features.map(f => (
+              <div className="feature-card" key={f.title}>
                 <div className="feature-title">{f.title}</div>
                 <div className="feature-desc">{f.desc}</div>
               </div>
@@ -158,8 +206,10 @@ export const LandingPage: React.FC = () => {
         <div className="container">
           <div style={{ textAlign: 'center' }}>
             <div className="section-label">Workflow</div>
-            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>How It Works</h2>
-            <p className="section-subtitle" style={{ margin: '0 auto' }}>Five simple steps from workload definition to scheduling insights</p>
+            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>How to use it</h2>
+            <p className="section-subtitle" style={{ margin: '0 auto' }}>
+              From workload definition to exported results in five steps.
+            </p>
           </div>
 
           <div className="how-steps">
@@ -177,17 +227,18 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── SCHEDULER COMPARE ── */}
+      {/* ── ALGORITHMS ── */}
       <section className="compare-section">
         <div className="container">
           <div style={{ textAlign: 'center' }}>
             <div className="section-label">Scheduling Algorithms</div>
-            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>Two Approaches, One Workload</h2>
-            <p className="section-subtitle" style={{ margin: '0 auto' }}>Study how different strategies handle identical cloud task workloads</p>
+            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>Two algorithms, same workload</h2>
+            <p className="section-subtitle" style={{ margin: '0 auto' }}>
+              Both schedulers receive identical task sets so results are directly comparable.
+            </p>
           </div>
 
           <div className="scheduler-compare-grid">
-            {/* Baseline */}
             <div className="scheduler-card baseline-card">
               <div className="scheduler-card-header">
                 <div className="scheduler-card-dot" style={{ background: 'var(--baseline-color)' }} />
@@ -195,18 +246,17 @@ export const LandingPage: React.FC = () => {
                 <span className="badge badge-baseline">Baseline</span>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.65 }}>
-                An existing IEEE-inspired priority-based scheduling approach that uses task
-                priority and waiting-time information for job ordering across VMs.
+                Schedules tasks using weighted task priority and accumulated waiting time.
+                Based on existing IEEE-referenced scheduling approaches for cloud systems.
               </p>
               <ul className="scheduler-feature-list">
-                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Priority-weighted task ordering</li>
+                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Priority-weighted ordering</li>
                 <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Waiting-time influence factor</li>
-                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Fibonacci Heap extraction</li>
-                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Controlled scientific baseline</li>
+                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Fibonacci Heap priority queue</li>
+                <li><span className="feature-dot" style={{ background: 'var(--baseline-color)' }} />Controlled comparison baseline</li>
               </ul>
             </div>
 
-            {/* Proposed */}
             <div className="scheduler-card proposed-card">
               <div className="scheduler-card-header">
                 <div className="scheduler-card-dot" style={{ background: 'var(--proposed-color)' }} />
@@ -214,14 +264,14 @@ export const LandingPage: React.FC = () => {
                 <span className="badge badge-proposed">Proposed</span>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.65 }}>
-                The proposed approach that incorporates deadline urgency into the scoring formula,
-                dynamically adjusting task priority based on how close a task is to its deadline.
+                Adds deadline urgency to the scheduling score. Tasks approaching their
+                deadline receive a higher composite score and are dispatched sooner.
               </p>
               <ul className="scheduler-feature-list">
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Task priority (weight: 0.35)</li>
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Deadline urgency (weight: 0.50)</li>
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Waiting factor (weight: 0.15)</li>
-                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Fibonacci Heap extraction</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Task priority — weight 0.35</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Deadline urgency — weight 0.50</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Waiting factor — weight 0.15</li>
+                <li><span className="feature-dot" style={{ background: 'var(--proposed-color)' }} />Fibonacci Heap priority queue</li>
               </ul>
             </div>
           </div>
@@ -232,12 +282,14 @@ export const LandingPage: React.FC = () => {
       <section className="metrics-section">
         <div className="container">
           <div style={{ textAlign: 'center' }}>
-            <div className="section-label">Evaluation</div>
-            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>Performance Metrics</h2>
-            <p className="section-subtitle" style={{ margin: '0 auto' }}>Six quantitative measures for a complete scheduling performance analysis</p>
+            <div className="section-label">Evaluation Metrics</div>
+            <h2 className="section-title" style={{ margin: '0 auto 12px' }}>What gets measured</h2>
+            <p className="section-subtitle" style={{ margin: '0 auto' }}>
+              Six metrics are computed for every simulation run and included in CSV exports.
+            </p>
           </div>
           <div className="metrics-explain-grid">
-            {metrics.map(m => (
+            {metricsInfo.map(m => (
               <div className="metrics-explain-card" key={m.name}>
                 <div className="metrics-explain-name">{m.name}</div>
                 <div className="metrics-explain-desc">{m.desc}</div>
@@ -251,14 +303,13 @@ export const LandingPage: React.FC = () => {
       <section className="cta-section">
         <div className="container">
           <div className="cta-box">
-            <div className="cta-title">
-              Ready to simulate a <span className="gradient-text">cloud workload?</span>
-            </div>
+            <div className="cta-title">Try it with the demo workload</div>
             <div className="cta-subtitle">
-              Load the 10-task demo workload, run both schedulers, and explore full metric analysis in seconds.
+              The built-in 10-task demo runs both schedulers on a pre-configured workload
+              so you can see results immediately without entering any data.
             </div>
-            <Link to="/simulator" className="btn btn-primary btn-xl">
-              Launch Simulator →
+            <Link to="/simulator" className="btn btn-primary btn-lg">
+              Open Simulator
             </Link>
           </div>
         </div>
