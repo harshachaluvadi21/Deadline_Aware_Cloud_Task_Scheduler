@@ -17,57 +17,69 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, tasks, titl
     ? stats.missedRate
     : (metrics.deadlineMissRate > 1 ? metrics.deadlineMissRate : metrics.deadlineMissRate * 100);
 
+  const cards = [
+    {
+      label: 'Makespan',
+      value: `${metrics.makespan.toFixed(2)} s`,
+      sub: 'Total completion time',
+      color: 'var(--cyan)',
+      title: 'Time from simulation start until all tasks finish.',
+    },
+    {
+      label: 'Avg. Waiting Time',
+      value: `${metrics.averageWaitingTime.toFixed(2)} s`,
+      sub: 'Queue delay per task',
+      color: 'var(--text-primary)',
+      title: 'Average time tasks waited before execution began.',
+    },
+    {
+      label: 'Avg. Turnaround',
+      value: `${metrics.averageTurnaroundTime.toFixed(2)} s`,
+      sub: 'Wait + execution time',
+      color: 'var(--text-primary)',
+      title: 'Average time from task arrival until completion.',
+    },
+    {
+      label: 'Throughput',
+      value: metrics.throughput.toFixed(4),
+      sub: 'Tasks / second',
+      color: 'var(--text-primary)',
+      title: 'Completed tasks divided by total simulation time.',
+    },
+    {
+      label: 'Deadline Miss Rate',
+      value: `${missRate.toFixed(1)}%`,
+      sub: `${missedCount} of ${totalTasks} missed`,
+      color: missedCount > 0 ? 'var(--danger)' : 'var(--success)',
+      title: 'Percentage of tasks that finished after their deadline.',
+    },
+    {
+      label: 'VM Utilization',
+      value: `${metrics.resourceUtilization.toFixed(1)}%`,
+      sub: 'Resource usage',
+      color: 'var(--violet)',
+      title: 'Fraction of available VM execution capacity used.',
+    },
+  ];
+
   return (
-    <div className="card">
+    <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-title">
         <span>{title || 'Performance Metrics'}</span>
         {schedulerName && (
-          <span className="badge badge-info" style={{ textTransform: 'uppercase' }}>
-            {schedulerName}
+          <span className={`badge ${schedulerName === 'BASELINE' ? 'badge-baseline' : 'badge-proposed'}`}>
+            {schedulerName === 'BASELINE' ? 'Standard Priority' : 'Deadline-Aware'}
           </span>
         )}
       </div>
-
       <div className="metrics-grid">
-        <div className="metric-card" title="Time from the start of the simulation until all tasks finish.">
-          <span className="metric-label">Total Completion Time ⓘ</span>
-          <span className="metric-value">{metrics.makespan.toFixed(2)} s</span>
-          <span className="metric-sub">Makespan</span>
-        </div>
-
-        <div className="metric-card" title="Average time tasks waited before execution.">
-          <span className="metric-label">Average Waiting Time ⓘ</span>
-          <span className="metric-value">{metrics.averageWaitingTime.toFixed(2)} s</span>
-          <span className="metric-sub">Average Queue Delay</span>
-        </div>
-
-        <div className="metric-card" title="Average time from task arrival until completion.">
-          <span className="metric-label">Average Turnaround Time ⓘ</span>
-          <span className="metric-value">{metrics.averageTurnaroundTime.toFixed(2)} s</span>
-          <span className="metric-sub">Wait + Execution Time</span>
-        </div>
-
-        <div className="metric-card" title="Number of completed tasks divided by total simulation time.">
-          <span className="metric-label">Tasks Completed / Second ⓘ</span>
-          <span className="metric-value">{metrics.throughput.toFixed(4)}</span>
-          <span className="metric-sub">Throughput</span>
-        </div>
-
-        <div className="metric-card" title="Percentage of tasks that finished after their deadlines.">
-          <span className="metric-label">Deadline Miss Rate ⓘ</span>
-          <span className="metric-value" style={{ color: missedCount > 0 ? 'var(--danger)' : 'var(--success)' }}>
-            {missRate.toFixed(1)}%
-          </span>
-          <span className="metric-sub">{missedCount} of {totalTasks} tasks missed</span>
-        </div>
-
-        <div className="metric-card" title="Percentage of available VM time used for executing tasks.">
-          <span className="metric-label">VM Usage ⓘ</span>
-          <span className="metric-value" style={{ color: 'var(--accent-primary)' }}>
-            {metrics.resourceUtilization.toFixed(1)}%
-          </span>
-          <span className="metric-sub">Time-based Resource Utilization</span>
-        </div>
+        {cards.map(c => (
+          <div className="metric-card" key={c.label} title={c.title}>
+            <div className="metric-card-label">{c.label}</div>
+            <div className="metric-card-value" style={{ color: c.color }}>{c.value}</div>
+            <div className="metric-card-unit">{c.sub}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

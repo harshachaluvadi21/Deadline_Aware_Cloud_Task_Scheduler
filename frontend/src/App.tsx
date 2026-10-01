@@ -6,7 +6,6 @@ import { SimulatorPage } from './pages/SimulatorPage';
 import { AboutPage } from './pages/AboutPage';
 import { simulationApi } from './services/api';
 
-// Scroll-to-top on navigation
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -28,12 +27,13 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/about" element={<AboutPage />} />
-        {/* Fallback */}
         <Route path="*" element={<LandingPage />} />
       </Routes>
       <footer className="footer">
         <div className="container">
-          Deadline-Aware Cloud Task Scheduler · Mini Project · CloudSim Plus Simulation Platform
+          <span style={{ color: 'var(--text-muted)' }}>
+            ⚡ CloudSched · Deadline-Aware Cloud Task Scheduler · Mini Project · CloudSim Plus Simulation Platform
+          </span>
         </div>
       </footer>
     </div>

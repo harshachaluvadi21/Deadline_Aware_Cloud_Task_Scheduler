@@ -15,23 +15,14 @@ import { SimulationOverview } from '../components/SimulationOverview';
 import { TechnicalDetails } from '../components/TechnicalDetails';
 import { ApiError, simulationApi } from '../services/api';
 import {
-  AlgorithmMode,
-  CompareResponse,
-  ExportMetricsRequest,
-  SimulateResponse,
-  TaskDto,
-  TaskResultDto,
+  AlgorithmMode, CompareResponse, ExportMetricsRequest,
+  SimulateResponse, TaskDto, TaskResultDto,
 } from '../types/simulation';
 
 const DEFAULT_FILTERS: FilterCriteria = {
-  vmId: 'ALL',
-  status: 'ALL',
-  minPriority: 1,
-  maxPriority: 10,
-  deadlineCategory: 'ALL',
+  vmId: 'ALL', status: 'ALL', minPriority: 1, maxPriority: 10, deadlineCategory: 'ALL',
 };
 
-// ── Step indicator ──────────────────────────────────────────
 type Step = 1 | 2 | 3 | 4;
 
 const StepBar: React.FC<{ current: Step; done: boolean }> = ({ current, done }) => {
@@ -41,7 +32,6 @@ const StepBar: React.FC<{ current: Step; done: boolean }> = ({ current, done }) 
     { n: 3, label: 'Simulation' },
     { n: 4, label: 'Results' },
   ];
-
   return (
     <div className="stepper">
       {steps.map((s, i) => {
@@ -49,14 +39,14 @@ const StepBar: React.FC<{ current: Step; done: boolean }> = ({ current, done }) 
         const isDone = done ? s.n <= 4 : s.n < current;
         return (
           <React.Fragment key={s.n}>
-            <div className={`stepper-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
+            <div className={`stepper-step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}>
               <div className="stepper-bubble">
                 {isDone && !isActive ? '✓' : s.n}
               </div>
               <span className="stepper-label">{s.label}</span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`stepper-connector ${isDone ? 'done' : ''}`} />
+              <div className={`stepper-connector${isDone ? ' done' : ''}`} />
             )}
           </React.Fragment>
         );
@@ -65,24 +55,16 @@ const StepBar: React.FC<{ current: Step; done: boolean }> = ({ current, done }) 
   );
 };
 
-// ── Tooltip helper ──────────────────────────────────────────
 const Tip: React.FC<{ text: string }> = ({ text }) => {
   const [show, setShow] = useState(false);
   return (
-    <span className="tooltip-wrapper">
-      <span
-        className="tooltip-icon"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-      >
-        ?
-      </span>
-      {show && <span className="tooltip-content">{text}</span>}
+    <span className="tip-wrap">
+      <span className="tip-icon" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>?</span>
+      {show && <span className="tip-content">{text}</span>}
     </span>
   );
 };
 
-// ── Main page ───────────────────────────────────────────────
 export const SimulatorPage: React.FC = () => {
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
   const [tasks, setTasks] = useState<TaskDto[]>([]);
@@ -94,45 +76,30 @@ export const SimulatorPage: React.FC = () => {
 
   const [singleResult, setSingleResult] = useState<SimulateResponse | null>(null);
   const [compareResult, setCompareResult] = useState<CompareResponse | null>(null);
-
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria>(DEFAULT_FILTERS);
-
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Health check + sample workload on mount
   useEffect(() => {
     const init = async () => {
       const isUp = await simulationApi.healthCheck();
       setBackendConnected(isUp);
       if (isUp) {
-        try {
-          const sample = await simulationApi.getSampleWorkload();
-          setTasks(sample);
-        } catch {
-          /* ignore */
-        }
+        try { const s = await simulationApi.getSampleWorkload(); setTasks(s); } catch { /* ignore */ }
       }
     };
     init();
   }, []);
 
-  // Scroll to results after simulation
   useEffect(() => {
     if (simulationSuccess && resultsRef.current) {
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
     }
   }, [simulationSuccess]);
 
-  // ── Workload helpers ──
   const handleLoadSample = async () => {
     setErrorMsg(null); setErrorDetails([]); setSimulationSuccess(false);
-    try {
-      const sample = await simulationApi.getSampleWorkload();
-      setTasks(sample);
-    } catch {
+    try { setTasks(await simulationApi.getSampleWorkload()); } catch {
       setTasks([
         { taskId: 0, priority: 5, arrivalTime: 0.00, executionTime: 15.65, deadline: 47.31 },
         { taskId: 1, priority: 4, arrivalTime: 1.99, executionTime: 10.56, deadline: 30.90 },
@@ -156,10 +123,8 @@ export const SimulatorPage: React.FC = () => {
           const parts = lines[i].split(',');
           if (parts.length === 5) {
             demoTasks.push({
-              taskId: parseInt(parts[0].trim()),
-              priority: parseInt(parts[1].trim()),
-              arrivalTime: parseFloat(parts[2].trim()),
-              executionTime: parseFloat(parts[3].trim()),
+              taskId: parseInt(parts[0].trim()), priority: parseInt(parts[1].trim()),
+              arrivalTime: parseFloat(parts[2].trim()), executionTime: parseFloat(parts[3].trim()),
               deadline: parseFloat(parts[4].trim()),
             });
           }
@@ -167,7 +132,6 @@ export const SimulatorPage: React.FC = () => {
         if (demoTasks.length > 0) { setTasks(demoTasks); setSingleResult(null); setCompareResult(null); return; }
       }
     } catch { /* fallback */ }
-    // Deterministic 10-task demo fallback
     setTasks([
       { taskId: 0, priority: 5, arrivalTime: 0.00, executionTime: 15.65, deadline: 47.31 },
       { taskId: 1, priority: 8, arrivalTime: 1.00, executionTime: 8.00, deadline: 12.00 },
@@ -189,7 +153,6 @@ export const SimulatorPage: React.FC = () => {
     setFilters(DEFAULT_FILTERS);
   };
 
-  // ── Run simulation ──
   const handleRunSimulation = async () => {
     if (tasks.length === 0) {
       setErrorMsg('Cannot run simulation with an empty workload. Add tasks, load demo, or upload a CSV.');
@@ -197,14 +160,11 @@ export const SimulatorPage: React.FC = () => {
     }
     setIsLoading(true); setErrorMsg(null); setErrorDetails([]);
     setSimulationSuccess(false); setSingleResult(null); setCompareResult(null);
-
     try {
       if (selectedAlgorithm === 'COMPARE') {
-        const result = await simulationApi.compareSchedulers(tasks);
-        setCompareResult(result);
+        setCompareResult(await simulationApi.compareSchedulers(tasks));
       } else {
-        const result = await simulationApi.runSimulation(selectedAlgorithm, tasks);
-        setSingleResult(result);
+        setSingleResult(await simulationApi.runSimulation(selectedAlgorithm, tasks));
       }
       setSimulationSuccess(true);
     } catch (err: unknown) {
@@ -220,9 +180,8 @@ export const SimulatorPage: React.FC = () => {
     }
   };
 
-  // ── Filter helpers ──
   const filterTaskList = (list: TaskResultDto[]) =>
-    list.filter((t) => {
+    list.filter(t => {
       if (filters.vmId !== 'ALL' && t.assignedVmId.toString() !== filters.vmId) return false;
       if (filters.status !== 'ALL') {
         if (filters.status === 'SUCCESS' && (t.deadlineMissed || t.status === 'MISSED_DEADLINE')) return false;
@@ -238,27 +197,15 @@ export const SimulatorPage: React.FC = () => {
 
   const availableVmIds = useMemo(() => {
     const ids = new Set<number>([0, 1, 2, 3]);
-    if (compareResult) {
-      compareResult.baseline.tasks.forEach(t => ids.add(t.assignedVmId));
-      compareResult.proposed.tasks.forEach(t => ids.add(t.assignedVmId));
-    } else if (singleResult) {
-      singleResult.tasks.forEach(t => ids.add(t.assignedVmId));
-    }
+    compareResult?.baseline.tasks.forEach(t => ids.add(t.assignedVmId));
+    compareResult?.proposed.tasks.forEach(t => ids.add(t.assignedVmId));
+    singleResult?.tasks.forEach(t => ids.add(t.assignedVmId));
     return Array.from(ids).sort((a, b) => a - b);
   }, [compareResult, singleResult]);
 
-  const filteredBaselineTasks = useMemo(
-    () => (compareResult ? filterTaskList(compareResult.baseline.tasks) : []),
-    [compareResult, filters]
-  );
-  const filteredProposedTasks = useMemo(
-    () => (compareResult ? filterTaskList(compareResult.proposed.tasks) : []),
-    [compareResult, filters]
-  );
-  const filteredSingleTasks = useMemo(
-    () => (singleResult ? filterTaskList(singleResult.tasks) : []),
-    [singleResult, filters]
-  );
+  const filteredBaselineTasks = useMemo(() => compareResult ? filterTaskList(compareResult.baseline.tasks) : [], [compareResult, filters]);
+  const filteredProposedTasks = useMemo(() => compareResult ? filterTaskList(compareResult.proposed.tasks) : [], [compareResult, filters]);
+  const filteredSingleTasks = useMemo(() => singleResult ? filterTaskList(singleResult.tasks) : [], [singleResult, filters]);
 
   const exportMetricsPayload: ExportMetricsRequest = useMemo(() => {
     if (compareResult) return { baseline: compareResult.baseline, proposed: compareResult.proposed };
@@ -275,26 +222,17 @@ export const SimulatorPage: React.FC = () => {
         {/* Page header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">Cloud Scheduler Simulator</h1>
+            <h1 className="page-title">
+              Cloud Scheduler <span className="gradient-text">Simulator</span>
+            </h1>
             <p className="page-desc">
               Define a workload, choose a scheduling method, and analyze results.
+              <Tip text="Priority: 1–10 importance. Arrival Time: when task enters the simulation. Execution Time: how long it runs. Deadline: target completion time." />
             </p>
           </div>
-          {backendConnected === true && (
-            <span className="status-indicator online" style={{ flexShrink: 0 }}>
-              <span className="status-dot" /> Backend Online
-            </span>
-          )}
-          {backendConnected === false && (
-            <span className="status-indicator offline" style={{ flexShrink: 0 }}>
-              <span className="status-dot" /> Backend Offline
-            </span>
-          )}
-          {backendConnected === null && (
-            <span className="status-indicator connecting" style={{ flexShrink: 0 }}>
-              <span className="status-dot pulse" /> Connecting…
-            </span>
-          )}
+          {backendConnected === true && <span className="status-pill online"><span className="status-dot" />API Live</span>}
+          {backendConnected === false && <span className="status-pill offline"><span className="status-dot" />Backend Offline</span>}
+          {backendConnected === null && <span className="status-pill connecting"><span className="status-dot pulse" />Connecting…</span>}
         </div>
 
         {/* Step indicator */}
@@ -302,8 +240,8 @@ export const SimulatorPage: React.FC = () => {
 
         {/* Error */}
         {errorMsg && (
-          <div className="alert alert-error">
-            <span>⚠</span>
+          <div className="alert alert-error" style={{ marginBottom: 20 }}>
+            <span className="alert-icon">⚠</span>
             <div>
               <strong>{errorMsg}</strong>
               {errorDetails.length > 0 && (
@@ -316,27 +254,19 @@ export const SimulatorPage: React.FC = () => {
         )}
 
         {/* Step 1: Workload */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-title">
             <span>
-              <span
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: 'var(--accent-dim)', color: 'var(--accent)',
-                  fontSize: '0.75rem', fontWeight: 800, marginRight: 10,
-                }}
-              >1</span>
+              <span className="step-badge">1</span>
               Define Your Workload
             </span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-              {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+            <span className="badge badge-cyan">
+              {tasks.length} {tasks.length !== 1 ? 'tasks' : 'task'}
             </span>
           </div>
           <p className="card-subtitle">
-            Tasks represent jobs submitted to the simulated cloud environment. Each task needs a
-            priority, arrival time, execution time, and deadline.
-            <Tip text="Priority: importance (1–10). Arrival Time: when the task enters the simulation. Execution Time: how long it runs. Deadline: target completion time." />
+            Tasks represent jobs submitted to the simulated cloud. Each needs a priority (1–10),
+            arrival time, execution time, and a deadline target.
           </p>
           <TaskInputTable
             tasks={tasks}
@@ -350,22 +280,15 @@ export const SimulatorPage: React.FC = () => {
         </div>
 
         {/* Step 2: Scheduler */}
-        <div className="card">
+        <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-title">
             <span>
-              <span
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: 'var(--accent-dim)', color: 'var(--accent)',
-                  fontSize: '0.75rem', fontWeight: 800, marginRight: 10,
-                }}
-              >2</span>
+              <span className="step-badge">2</span>
               Choose Scheduling Method
             </span>
           </div>
           <p className="card-subtitle">
-            Select one scheduling method or compare both using the same workload.
+            Select one scheduling algorithm or compare both using the same workload for a scientific analysis.
           </p>
           <AlgorithmSelector
             selected={selectedAlgorithm}
@@ -375,44 +298,38 @@ export const SimulatorPage: React.FC = () => {
         </div>
 
         {/* Step 3: Run */}
-        <div className="run-sim-area">
-          <div
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 24, height: 24, borderRadius: '50%',
-              background: 'var(--accent-dim)', color: 'var(--accent)',
-              fontSize: '0.75rem', fontWeight: 800, marginRight: 10,
-            }}
-          >3</div>
-          <div className="run-sim-title" style={{ display: 'inline' }}>Run Cloud Simulation</div>
-          <div className="run-sim-desc" style={{ marginTop: 6 }}>
-            Submit the workload to the CloudSim Plus engine and view scheduling results.
-          </div>
-          <button
-            className="btn btn-primary btn-xl"
-            onClick={handleRunSimulation}
-            disabled={isLoading || tasks.length === 0}
-          >
-            {isLoading ? (
-              <>
-                <span className="loading-spinner" />
-                Running Simulation…
-              </>
-            ) : (
-              '▶ Run Cloud Simulation'
-            )}
-          </button>
-          {tasks.length === 0 && !isLoading && (
-            <p style={{ marginTop: 10, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Add tasks above before running the simulation.
+        <div className="run-sim-area" style={{ marginBottom: 20 }}>
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
+              <span className="step-badge">3</span>
+              <div className="run-sim-title">Run Cloud Simulation</div>
+            </div>
+            <p className="run-sim-desc">
+              Submit the workload to the CloudSim Plus engine and view full scheduling results.
             </p>
-          )}
+            <button
+              className="btn btn-primary btn-xl"
+              onClick={handleRunSimulation}
+              disabled={isLoading || tasks.length === 0}
+            >
+              {isLoading ? (
+                <><span className="spinner" /> Running Simulation…</>
+              ) : (
+                '▶ Run Cloud Simulation'
+              )}
+            </button>
+            {tasks.length === 0 && !isLoading && (
+              <p style={{ marginTop: 12, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Add tasks above before running the simulation.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Success banner */}
         {simulationSuccess && (
-          <div className="alert alert-success fade-in">
-            <span>✔</span>
+          <div className="alert alert-success fade-in" style={{ marginBottom: 20 }}>
+            <span className="alert-icon">✔</span>
             <span>Simulation completed successfully — results are shown below.</span>
           </div>
         )}
@@ -423,15 +340,11 @@ export const SimulatorPage: React.FC = () => {
         {/* COMPARE results */}
         {selectedAlgorithm === 'COMPARE' && compareResult && (
           <section className="fade-in">
-            <div className="results-section-header" style={{ marginTop: 8 }}>
+            <div className="results-header">
               <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 4 }}>Step 4</div>
-                <h2 className="results-section-title" style={{ fontSize: '1.25rem' }}>
-                  Controlled Scheduler Comparison
-                </h2>
-                <p className="results-section-subtitle">
-                  Both schedulers ran on identical workloads. Review the metrics and timeline below.
-                </p>
+                <div className="section-label">Step 4 · Results</div>
+                <div className="results-title">Controlled Scheduler Comparison</div>
+                <div className="results-subtitle">Both schedulers ran on identical workloads. Review metrics and timelines below.</div>
               </div>
             </div>
 
@@ -467,34 +380,11 @@ export const SimulatorPage: React.FC = () => {
                 <div className="dual-col-header baseline">
                   <span>◈</span> Standard Priority
                 </div>
-                <MetricsCards
-                  metrics={compareResult.baseline.metrics}
-                  tasks={compareResult.baseline.tasks}
-                  title="Standard Priority Metrics"
-                  schedulerName="BASELINE"
-                />
-                <DeadlineAnalysisView
-                  tasks={filteredBaselineTasks}
-                  title="Deadline Analysis"
-                  schedulerName="BASELINE"
-                />
-                <VmUtilizationCards
-                  tasks={compareResult.baseline.tasks}
-                  makespan={compareResult.baseline.metrics.makespan}
-                  overallClusterUtilization={compareResult.baseline.metrics.resourceUtilization}
-                />
-                <VmTimeline
-                  tasks={filteredBaselineTasks}
-                  makespan={compareResult.baseline.metrics.makespan}
-                  title="Task Execution Timeline"
-                  schedulerName="BASELINE"
-                />
-                <TaskResultsTable
-                  tasks={filteredBaselineTasks}
-                  totalTasksCount={compareResult.baseline.tasks.length}
-                  title="Detailed Task Results"
-                  schedulerName="BASELINE"
-                />
+                <MetricsCards metrics={compareResult.baseline.metrics} tasks={compareResult.baseline.tasks} title="Standard Priority Metrics" schedulerName="BASELINE" />
+                <DeadlineAnalysisView tasks={filteredBaselineTasks} title="Deadline Analysis" schedulerName="BASELINE" />
+                <VmUtilizationCards tasks={compareResult.baseline.tasks} makespan={compareResult.baseline.metrics.makespan} overallClusterUtilization={compareResult.baseline.metrics.resourceUtilization} />
+                <VmTimeline tasks={filteredBaselineTasks} makespan={compareResult.baseline.metrics.makespan} title="Execution Timeline" schedulerName="BASELINE" />
+                <TaskResultsTable tasks={filteredBaselineTasks} totalTasksCount={compareResult.baseline.tasks.length} title="Task Results" schedulerName="BASELINE" />
               </div>
 
               {/* Proposed column */}
@@ -502,130 +392,50 @@ export const SimulatorPage: React.FC = () => {
                 <div className="dual-col-header proposed">
                   <span>◆</span> Deadline-Aware
                 </div>
-                <MetricsCards
-                  metrics={compareResult.proposed.metrics}
-                  tasks={compareResult.proposed.tasks}
-                  title="Deadline-Aware Metrics"
-                  schedulerName="PROPOSED"
-                />
-                <DeadlineAnalysisView
-                  tasks={filteredProposedTasks}
-                  title="Deadline Analysis"
-                  schedulerName="PROPOSED"
-                />
-                <VmUtilizationCards
-                  tasks={compareResult.proposed.tasks}
-                  makespan={compareResult.proposed.metrics.makespan}
-                  overallClusterUtilization={compareResult.proposed.metrics.resourceUtilization}
-                />
-                <VmTimeline
-                  tasks={filteredProposedTasks}
-                  makespan={compareResult.proposed.metrics.makespan}
-                  title="Task Execution Timeline"
-                  schedulerName="PROPOSED"
-                />
-                <TaskResultsTable
-                  tasks={filteredProposedTasks}
-                  totalTasksCount={compareResult.proposed.tasks.length}
-                  title="Detailed Task Results"
-                  schedulerName="PROPOSED"
-                />
+                <MetricsCards metrics={compareResult.proposed.metrics} tasks={compareResult.proposed.tasks} title="Deadline-Aware Metrics" schedulerName="PROPOSED" />
+                <DeadlineAnalysisView tasks={filteredProposedTasks} title="Deadline Analysis" schedulerName="PROPOSED" />
+                <VmUtilizationCards tasks={compareResult.proposed.tasks} makespan={compareResult.proposed.metrics.makespan} overallClusterUtilization={compareResult.proposed.metrics.resourceUtilization} />
+                <VmTimeline tasks={filteredProposedTasks} makespan={compareResult.proposed.metrics.makespan} title="Execution Timeline" schedulerName="PROPOSED" />
+                <TaskResultsTable tasks={filteredProposedTasks} totalTasksCount={compareResult.proposed.tasks.length} title="Task Results" schedulerName="PROPOSED" />
               </div>
             </div>
 
-            {/* Export */}
-            <ExportButtons
-              tasks={compareResult.proposed.tasks}
-              metricsRequest={exportMetricsPayload}
-            />
+            <ExportButtons tasks={compareResult.proposed.tasks} metricsRequest={exportMetricsPayload} />
           </section>
         )}
 
         {/* SINGLE result */}
         {selectedAlgorithm !== 'COMPARE' && singleResult && (
           <section className="fade-in">
-            <div className="results-section-header" style={{ marginTop: 8 }}>
+            <div className="results-header">
               <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 4 }}>Step 4</div>
-                <h2 className="results-section-title" style={{ fontSize: '1.25rem' }}>
-                  Simulation Results
-                </h2>
-                <p className="results-section-subtitle">
-                  Review how the{' '}
-                  {singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'}{' '}
-                  scheduler executed your workload.
-                </p>
+                <div className="section-label">Step 4 · Results</div>
+                <div className="results-title">Simulation Results</div>
+                <div className="results-subtitle">
+                  Review how the {singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} scheduler executed your workload.
+                </div>
               </div>
             </div>
 
-            <SimulationOverview
-              singleTasks={singleResult.tasks}
-              singleMetrics={singleResult.metrics}
-              singleAlgorithmName={singleResult.algorithm}
-            />
-
-            <MetricsCards
-              metrics={singleResult.metrics}
-              tasks={singleResult.tasks}
-              schedulerName={singleResult.algorithm}
-            />
-
-            <MetricsCharts
-              singleMetrics={singleResult.metrics}
-              singleTasks={singleResult.tasks}
-              singleAlgorithmName={singleResult.algorithm}
-            />
-
+            <SimulationOverview singleTasks={singleResult.tasks} singleMetrics={singleResult.metrics} singleAlgorithmName={singleResult.algorithm} />
+            <MetricsCards metrics={singleResult.metrics} tasks={singleResult.tasks} schedulerName={singleResult.algorithm} />
+            <MetricsCharts singleMetrics={singleResult.metrics} singleTasks={singleResult.tasks} singleAlgorithmName={singleResult.algorithm} />
             <TechnicalDetails />
-
-            <TaskFilters
-              filters={filters}
-              onFilterChange={setFilters}
-              onResetFilters={() => setFilters(DEFAULT_FILTERS)}
-              availableVmIds={availableVmIds}
-            />
-
-            <DeadlineAnalysisView
-              tasks={filteredSingleTasks}
-              title={`${singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} Deadline Analysis`}
-              schedulerName={singleResult.algorithm}
-            />
-
-            <VmUtilizationCards
-              tasks={singleResult.tasks}
-              makespan={singleResult.metrics.makespan}
-              overallClusterUtilization={singleResult.metrics.resourceUtilization}
-            />
-
-            <VmTimeline
-              tasks={filteredSingleTasks}
-              makespan={singleResult.metrics.makespan}
-              schedulerName={singleResult.algorithm}
-            />
-
-            <TaskResultsTable
-              tasks={filteredSingleTasks}
-              totalTasksCount={singleResult.tasks.length}
-              schedulerName={singleResult.algorithm}
-            />
-
-            <ExportButtons
-              tasks={singleResult.tasks}
-              metricsRequest={exportMetricsPayload}
-            />
+            <TaskFilters filters={filters} onFilterChange={setFilters} onResetFilters={() => setFilters(DEFAULT_FILTERS)} availableVmIds={availableVmIds} />
+            <DeadlineAnalysisView tasks={filteredSingleTasks} title={`${singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} Deadline Analysis`} schedulerName={singleResult.algorithm} />
+            <VmUtilizationCards tasks={singleResult.tasks} makespan={singleResult.metrics.makespan} overallClusterUtilization={singleResult.metrics.resourceUtilization} />
+            <VmTimeline tasks={filteredSingleTasks} makespan={singleResult.metrics.makespan} schedulerName={singleResult.algorithm} />
+            <TaskResultsTable tasks={filteredSingleTasks} totalTasksCount={singleResult.tasks.length} schedulerName={singleResult.algorithm} />
+            <ExportButtons tasks={singleResult.tasks} metricsRequest={exportMetricsPayload} />
           </section>
         )}
       </div>
 
-      {/* CSV Upload Modal */}
       <CsvUploadModal
         isOpen={isCsvModalOpen}
         onClose={() => setIsCsvModalOpen(false)}
-        onWorkloadLoaded={(loadedTasks) => {
-          setTasks(loadedTasks);
-          setSingleResult(null);
-          setCompareResult(null);
-          setSimulationSuccess(false);
+        onWorkloadLoaded={loadedTasks => {
+          setTasks(loadedTasks); setSingleResult(null); setCompareResult(null); setSimulationSuccess(false);
         }}
       />
     </main>

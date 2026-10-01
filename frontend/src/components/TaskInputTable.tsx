@@ -12,13 +12,7 @@ interface TaskInputTableProps {
 }
 
 export const TaskInputTable: React.FC<TaskInputTableProps> = ({
-  tasks,
-  onTasksChange,
-  onLoadSample,
-  onLoadDemo,
-  onOpenUploadModal,
-  onReset,
-  disabled
+  tasks, onTasksChange, onLoadSample, onLoadDemo, onOpenUploadModal, onReset, disabled,
 }) => {
   const handleFieldChange = (index: number, field: keyof TaskDto, value: number) => {
     const updated = [...tasks];
@@ -28,145 +22,63 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
 
   const handleAddTask = () => {
     const nextId = tasks.length > 0 ? Math.max(...tasks.map(t => t.taskId)) + 1 : 0;
-    const newTask: TaskDto = {
-      taskId: nextId,
-      priority: 5,
-      arrivalTime: 0.0,
-      executionTime: 10.0,
-      deadline: 30.0
-    };
-    onTasksChange([...tasks, newTask]);
+    onTasksChange([...tasks, { taskId: nextId, priority: 5, arrivalTime: 0.0, executionTime: 10.0, deadline: 30.0 }]);
   };
 
   const handleRemoveTask = (index: number) => {
-    const updated = tasks.filter((_, i) => i !== index);
-    onTasksChange(updated);
+    onTasksChange(tasks.filter((_, i) => i !== index));
   };
 
   return (
-    <div className="card">
-      <div className="card-title" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-        <div>
-          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc' }}>
-            Step 1: Add Your Tasks
-          </span>
-          <span style={{ fontSize: '0.85rem', color: '#38bdf8', marginLeft: '10px', fontWeight: 500 }}>
-            ({tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} configured)
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {onOpenUploadModal && (
-            <button
-              className="btn btn-secondary"
-              onClick={onOpenUploadModal}
-              disabled={disabled}
-              type="button"
-              title="Upload CSV workload file with validation"
-            >
-              📁 Upload Tasks
-            </button>
-          )}
-
-          {onLoadDemo && (
-            <button
-              className="btn btn-secondary"
-              onClick={onLoadDemo}
-              disabled={disabled}
-              type="button"
-              style={{ borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
-              title="Load 10-task deterministic demo workload"
-            >
-              ✨ Load Demo
-            </button>
-          )}
-
-          <button
-            className="btn btn-secondary"
-            onClick={onLoadSample}
-            disabled={disabled}
-            type="button"
-            title="Load default 5-task sample workload"
-          >
-            Load Sample
+    <div>
+      {/* Action bar */}
+      <div className="task-table-actions">
+        {onLoadDemo && (
+          <button className="btn btn-secondary btn-sm" onClick={onLoadDemo} disabled={disabled} type="button">
+            ✨ Load Demo
           </button>
-
-          <button
-            className="btn btn-primary"
-            onClick={handleAddTask}
-            disabled={disabled}
-            type="button"
-            title="Append a new task row"
-          >
-            + Add Task
+        )}
+        <button className="btn btn-ghost btn-sm" onClick={onLoadSample} disabled={disabled} type="button">
+          Load Sample
+        </button>
+        {onOpenUploadModal && (
+          <button className="btn btn-ghost btn-sm" onClick={onOpenUploadModal} disabled={disabled} type="button">
+            📁 Upload CSV
           </button>
-
-          {onReset && (
-            <button
-              className="btn btn-secondary"
-              style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-              onClick={onReset}
-              disabled={disabled}
-              type="button"
-              title="Reset all tasks, results, and filters"
-            >
-              Reset
-            </button>
-          )}
-        </div>
+        )}
+        <button className="btn btn-primary btn-sm" onClick={handleAddTask} disabled={disabled} type="button">
+          + Add Task
+        </button>
+        {onReset && (
+          <button className="btn btn-danger btn-sm" onClick={onReset} disabled={disabled} type="button">
+            Reset
+          </button>
+        )}
       </div>
-      <p className="card-subtitle" style={{ margin: '4px 0 12px' }}>
-        Enter the tasks you want to schedule in the cloud simulation.
-      </p>
 
-      {/* Beginner Helper Tip */}
-      <div style={{
-        padding: '8px 14px',
-        backgroundColor: 'rgba(56, 189, 248, 0.08)',
-        borderLeft: '3px solid #38bdf8',
-        borderRadius: '4px',
-        fontSize: '0.84rem',
-        color: '#cbd5e1',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        <span>💡</span>
+      {/* Hint */}
+      <div className="alert alert-info" style={{ marginBottom: 16 }}>
+        <span className="alert-icon">💡</span>
         <span>
-          <strong>New here?</strong> Click <em>"Load Demo"</em> to try the scheduler without entering tasks manually.
+          <strong>New here?</strong> Click <em>"✨ Load Demo"</em> to load the 10-task reference workload and run both schedulers instantly.
         </span>
       </div>
 
       {tasks.length === 0 ? (
-        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          No tasks in workload. Click <strong>"✨ Load Demo"</strong>, <strong>"Load Sample"</strong>, or <strong>"+ Add Task"</strong> to start.
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-glass)', borderRadius: 'var(--r-lg)', border: '1px dashed var(--border-md)' }}>
+          No tasks defined. Use the buttons above to load a demo or add tasks manually.
         </div>
       ) : (
-        <div className="table-responsive">
-          <table>
+        <div className="data-table-wrap">
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '90px' }} title="Unique identifier for the task.">
-                  Task ID ⓘ
-                  <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#94a3b8' }}>Unique identifier</div>
-                </th>
-                <th style={{ width: '120px' }} title="Higher value means higher base priority. Range 1 to 10.">
-                  Priority (1–10) ⓘ
-                  <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#94a3b8' }}>Higher = more urgent</div>
-                </th>
-                <th style={{ width: '130px' }} title="When the task enters the system (in seconds).">
-                  Arrival Time (s) ⓘ
-                  <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#94a3b8' }}>When task enters</div>
-                </th>
-                <th style={{ width: '140px' }} title="Estimated time required to execute the task (in seconds).">
-                  Execution Time (s) ⓘ
-                  <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#94a3b8' }}>Execution duration</div>
-                </th>
-                <th style={{ width: '130px' }} title="Target time by which the task should finish (in seconds).">
-                  Deadline (s) ⓘ
-                  <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#94a3b8' }}>Target finish time</div>
-                </th>
-                <th style={{ width: '80px', textAlign: 'center' }}>Action</th>
+                <th title="Unique identifier for the task">Task ID</th>
+                <th title="Task priority from 1 (lowest) to 10 (highest)">Priority (1–10)</th>
+                <th title="When the task enters the system (seconds)">Arrival Time (s)</th>
+                <th title="Time required to run the task (seconds)">Exec. Time (s)</th>
+                <th title="Target completion time (seconds)">Deadline (s)</th>
+                <th style={{ textAlign: 'center' }}>Remove</th>
               </tr>
             </thead>
             <tbody>
@@ -174,62 +86,51 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
                 <tr key={index}>
                   <td>
                     <input
-                      type="number"
+                      type="number" className="task-input" style={{ width: 80 }}
                       value={task.taskId}
-                      onChange={(e) => handleFieldChange(index, 'taskId', parseInt(e.target.value) || 0)}
-                      disabled={disabled}
-                      min="0"
+                      onChange={e => handleFieldChange(index, 'taskId', parseInt(e.target.value) || 0)}
+                      disabled={disabled} min="0"
                     />
                   </td>
                   <td>
                     <input
-                      type="number"
+                      type="number" className="task-input" style={{ width: 80 }}
                       value={task.priority}
-                      onChange={(e) => handleFieldChange(index, 'priority', parseInt(e.target.value) || 1)}
-                      disabled={disabled}
-                      min="1"
-                      max="10"
+                      onChange={e => handleFieldChange(index, 'priority', parseInt(e.target.value) || 1)}
+                      disabled={disabled} min="1" max="10"
                     />
                   </td>
                   <td>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="number" className="task-input" style={{ width: 100 }} step="0.1"
                       value={task.arrivalTime}
-                      onChange={(e) => handleFieldChange(index, 'arrivalTime', parseFloat(e.target.value) || 0)}
-                      disabled={disabled}
-                      min="0"
+                      onChange={e => handleFieldChange(index, 'arrivalTime', parseFloat(e.target.value) || 0)}
+                      disabled={disabled} min="0"
                     />
                   </td>
                   <td>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="number" className="task-input" style={{ width: 100 }} step="0.1"
                       value={task.executionTime}
-                      onChange={(e) => handleFieldChange(index, 'executionTime', parseFloat(e.target.value) || 0.1)}
-                      disabled={disabled}
-                      min="0.1"
+                      onChange={e => handleFieldChange(index, 'executionTime', parseFloat(e.target.value) || 0.1)}
+                      disabled={disabled} min="0.1"
                     />
                   </td>
                   <td>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="number" className="task-input" style={{ width: 100 }} step="0.1"
                       value={task.deadline}
-                      onChange={(e) => handleFieldChange(index, 'deadline', parseFloat(e.target.value) || 0)}
-                      disabled={disabled}
-                      min="0"
+                      onChange={e => handleFieldChange(index, 'deadline', parseFloat(e.target.value) || 0)}
+                      disabled={disabled} min="0"
                     />
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <button
-                      className="btn btn-danger"
-                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      className="btn btn-danger btn-xs"
                       onClick={() => handleRemoveTask(index)}
-                      disabled={disabled}
-                      type="button"
+                      disabled={disabled} type="button"
                     >
-                      Delete
+                      ✕
                     </button>
                   </td>
                 </tr>

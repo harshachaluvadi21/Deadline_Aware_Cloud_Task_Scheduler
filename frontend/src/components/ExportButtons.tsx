@@ -60,7 +60,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               disabled={disabled || isExportingTasks || tasks.length === 0}
               title="Download Deadline-Aware task-level results (timing, VM, deadline status)"
             >
-              {isExportingTasks ? <><span className="loading-spinner" /> Exporting…</> : '📥 Download Deadline-Aware Task Results'}
+              {isExportingTasks ? <><span className="spinner" /> Exporting…</> : '📥 Download Deadline-Aware Task Results'}
             </button>
             <button
               className="btn btn-secondary"
@@ -68,7 +68,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               disabled={disabled || isExportingMetrics}
               title="Download comparison metrics CSV with pairwise differences"
             >
-              {isExportingMetrics ? <><span className="loading-spinner" /> Exporting…</> : '📊 Download Comparison Metrics'}
+              {isExportingMetrics ? <><span className="spinner" /> Exporting…</> : '📊 Download Comparison Metrics'}
             </button>
           </>
         ) : (
@@ -79,7 +79,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               disabled={disabled || isExportingTasks || tasks.length === 0}
               title="Download task-level execution results"
             >
-              {isExportingTasks ? <><span className="loading-spinner" /> Exporting…</> : '📥 Download Task Results'}
+              {isExportingTasks ? <><span className="spinner" /> Exporting…</> : '📥 Download Task Results'}
             </button>
             <button
               className="btn btn-secondary"
@@ -87,7 +87,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
               disabled={disabled || isExportingMetrics}
               title="Download scheduling metrics summary"
             >
-              {isExportingMetrics ? <><span className="loading-spinner" /> Exporting…</> : '📊 Download Metrics Summary'}
+              {isExportingMetrics ? <><span className="spinner" /> Exporting…</> : '📊 Download Metrics Summary'}
             </button>
           </>
         )}
