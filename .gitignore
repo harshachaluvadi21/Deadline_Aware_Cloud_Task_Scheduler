@@ -33,6 +33,10 @@ Desktop.ini
 # Scratch / temp
 scratch/
 
+# Local guide and explanation notes
+GUIDE_QUESTIONS_AND_ANSWERS.md
+PROJECT_GUIDE_EXPLANATION.md
+
 # Python cache
 __pycache__/
 *.pyc

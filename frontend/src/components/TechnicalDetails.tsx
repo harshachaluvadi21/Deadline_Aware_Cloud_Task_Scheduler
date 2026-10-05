@@ -72,12 +72,20 @@ export const TechnicalDetails: React.FC = () => {
             {/* Scheduling Formula */}
             <div style={{ background: '#0f172a', padding: '14px', borderRadius: '6px', border: '1px solid #1e293b' }}>
               <div style={{ color: '#38bdf8', fontWeight: 600, marginBottom: '6px' }}>4. Multi-Criteria Composite Score</div>
-              <p style={{ margin: 0 }}>
-                Tasks are prioritized via research-validated weights:<br />
+              <p style={{ margin: 0, marginBottom: '8px' }}>
+                Tasks are prioritized via calibrated composite weights:
                 <code style={{ color: '#38bdf8', display: 'block', margin: '4px 0', background: '#1e293b', padding: '4px 8px', borderRadius: '3px' }}>
                   Score = 0.35 &times; Priority + 0.50 &times; Urgency + 0.15 &times; WaitingFactor
                 </code>
               </p>
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.5, borderTop: '1px dashed #334155', paddingTop: '6px' }}>
+                <strong style={{ color: '#cbd5e1' }}>Why these specific numbers?</strong>
+                <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>
+                  <li><strong>0.50 (Urgency):</strong> Largest weight (50%) to guarantee critical tasks avoid SLA deadline breaches.</li>
+                  <li><strong>0.35 (Priority):</strong> Respects customer priority tiers when deadlines are not in danger. Since 0.50 &gt; 0.35, urgency always overrides priority when a deadline is imminent.</li>
+                  <li><strong>0.15 (Waiting):</strong> Prevents starvation for low-priority tasks. Sum is 1.0 (0.35 + 0.50 + 0.15 = 1.0) to keep scores normalized in [0, 1].</li>
+                </ul>
+              </div>
             </div>
 
             {/* Fibonacci Heap */}

@@ -6,24 +6,33 @@ import { VmTimeline } from '../components/VmTimeline';
 import { TaskResultsTable } from '../components/TaskResultsTable';
 import { ComparisonTable } from '../components/ComparisonTable';
 import { MetricsCharts } from '../components/MetricsCharts';
-import { DeadlineAnalysisView, classifyTaskDeadline } from '../components/DeadlineAnalysisView';
+import { DeadlineAnalysisView, classifyTaskDeadline, computeDeadlineStats } from '../components/DeadlineAnalysisView';
 import { VmUtilizationCards } from '../components/VmUtilizationCards';
 import { TaskFilters, FilterCriteria } from '../components/TaskFilters';
 import { CsvUploadModal } from '../components/CsvUploadModal';
 import { ExportButtons } from '../components/ExportButtons';
 import { SimulationOverview } from '../components/SimulationOverview';
 import { TechnicalDetails } from '../components/TechnicalDetails';
+import { GeminiAiAnalyst } from '../components/GeminiAiAnalyst';
+import { SimulationSkeleton } from '../components/SimulationSkeleton';
+import { InsightsBanner } from '../components/InsightsBanner';
+import { RunHistoryPanel, RunHistoryEntry } from '../components/RunHistoryPanel';
+import { PresetScenario } from '../data/presetWorkloads';
 import { ApiError, simulationApi } from '../services/api';
 import {
   AlgorithmMode, CompareResponse, ExportMetricsRequest,
   SimulateResponse, TaskDto, TaskResultDto,
 } from '../types/simulation';
+import { CloudDatacenterTopology } from '../components/CloudDatacenterTopology';
+import { CloudSlaAndCostView } from '../components/CloudSlaAndCostView';
+import { CloudDegreeOfImbalance } from '../components/CloudDegreeOfImbalance';
 
 const DEFAULT_FILTERS: FilterCriteria = {
   vmId: 'ALL', status: 'ALL', minPriority: 1, maxPriority: 10, deadlineCategory: 'ALL',
 };
 
 type Step = 1 | 2 | 3 | 4;
+type ResultsTab = 'overview' | 'datacenter' | 'timelines' | 'ledger' | 'charts' | 'all';
 
 const StepBar: React.FC<{ current: Step; done: boolean }> = ({ current, done }) => {
   const steps = [
@@ -76,8 +85,10 @@ export const SimulatorPage: React.FC = () => {
 
   const [singleResult, setSingleResult] = useState<SimulateResponse | null>(null);
   const [compareResult, setCompareResult] = useState<CompareResponse | null>(null);
+  const [history, setHistory] = useState<RunHistoryEntry[]>([]);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria>(DEFAULT_FILTERS);
+  const [activeTab, setActiveTab] = useState<ResultsTab>('overview');
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +107,29 @@ export const SimulatorPage: React.FC = () => {
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
     }
   }, [simulationSuccess]);
+
+  // Keyboard shortcuts: Ctrl+Enter to run, Ctrl+D to load demo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRunSimulation();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D') && !isInput) {
+        e.preventDefault();
+        handleLoadDemo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tasks, selectedAlgorithm]);
+
+  const handleSelectPreset = (preset: PresetScenario) => {
+    setErrorMsg(null); setErrorDetails([]); setSimulationSuccess(false);
+    setTasks(preset.tasks);
+    setSingleResult(null); setCompareResult(null);
+  };
 
   const handleLoadSample = async () => {
     setErrorMsg(null); setErrorDetails([]); setSimulationSuccess(false);
@@ -150,7 +184,7 @@ export const SimulatorPage: React.FC = () => {
   const handleReset = () => {
     setTasks([]); setSingleResult(null); setCompareResult(null);
     setErrorMsg(null); setErrorDetails([]); setSimulationSuccess(false);
-    setFilters(DEFAULT_FILTERS);
+    setFilters(DEFAULT_FILTERS); setActiveTab('overview');
   };
 
   const handleRunSimulation = async () => {
@@ -160,11 +194,35 @@ export const SimulatorPage: React.FC = () => {
     }
     setIsLoading(true); setErrorMsg(null); setErrorDetails([]);
     setSimulationSuccess(false); setSingleResult(null); setCompareResult(null);
+    setActiveTab('overview');
     try {
       if (selectedAlgorithm === 'COMPARE') {
-        setCompareResult(await simulationApi.compareSchedulers(tasks));
+        const res = await simulationApi.compareSchedulers(tasks);
+        setCompareResult(res);
+        setHistory(prev => [
+          {
+            id: Date.now().toString(),
+            timestamp: new Date(),
+            algorithm: 'COMPARE',
+            tasksCount: tasks.length,
+            baselineMetrics: res.baseline.metrics,
+            proposedMetrics: res.proposed.metrics,
+          },
+          ...prev,
+        ]);
       } else {
-        setSingleResult(await simulationApi.runSimulation(selectedAlgorithm, tasks));
+        const res = await simulationApi.runSimulation(selectedAlgorithm, tasks);
+        setSingleResult(res);
+        setHistory(prev => [
+          {
+            id: Date.now().toString(),
+            timestamp: new Date(),
+            algorithm: selectedAlgorithm,
+            tasksCount: tasks.length,
+            singleMetrics: res.metrics,
+          },
+          ...prev,
+        ]);
       }
       setSimulationSuccess(true);
     } catch (err: unknown) {
@@ -213,6 +271,69 @@ export const SimulatorPage: React.FC = () => {
     return {};
   }, [compareResult, singleResult]);
 
+  const computeDI = (taskList: TaskResultDto[], vmCount = 4): number => {
+    if (!taskList || taskList.length === 0) return 0;
+    const loads = [0, 0, 0, 0];
+    taskList.forEach(t => {
+      if (t.assignedVmId >= 0 && t.assignedVmId < vmCount) {
+        loads[t.assignedVmId] += t.executionTime;
+      }
+    });
+    const tMax = Math.max(...loads);
+    const tMin = Math.min(...loads);
+    const total = loads.reduce((a, b) => a + b, 0);
+    const tAvg = total / vmCount;
+    return tAvg > 0 ? (tMax - tMin) / tAvg : 0;
+  };
+
+  // Executive KPI summary data for Compare Results Strip
+  const kpiData = useMemo(() => {
+    if (!compareResult) return null;
+    const base = compareResult.baseline;
+    const prop = compareResult.proposed;
+
+    const msBase = base.metrics.makespan;
+    const msProp = prop.metrics.makespan;
+    const msDiff = msBase - msProp;
+    const msDiffPct = msBase > 0 ? ((msDiff / msBase) * 100).toFixed(1) : '0';
+
+    const baseStats = computeDeadlineStats(base.tasks || []);
+    const propStats = computeDeadlineStats(prop.tasks || []);
+    const missedDiff = baseStats.missedCount - propStats.missedCount;
+
+    const diBase = computeDI(base.tasks || []);
+    const diProp = computeDI(prop.tasks || []);
+
+    const slaCostBase = baseStats.missedCount * 0.20;
+    const slaCostProp = propStats.missedCount * 0.20;
+    const costSaved = Math.max(0, slaCostBase - slaCostProp);
+
+    return {
+      msBase, msProp, msDiffPct,
+      missBase: baseStats.missedCount, missProp: propStats.missedCount,
+      missRateBase: baseStats.missedRate.toFixed(0),
+      missRateProp: propStats.missedRate.toFixed(0),
+      missedDiff,
+      diBase: diBase.toFixed(2), diProp: diProp.toFixed(2),
+      costSaved: costSaved.toFixed(2),
+    };
+  }, [compareResult]);
+
+  // Executive KPI summary data for Single Result Strip
+  const singleKpiData = useMemo(() => {
+    if (!singleResult) return null;
+    const stats = computeDeadlineStats(singleResult.tasks || []);
+    const di = computeDI(singleResult.tasks || []);
+    return {
+      makespan: singleResult.metrics.makespan.toFixed(2),
+      missedCount: stats.missedCount,
+      missRate: stats.missedRate.toFixed(0),
+      utilization: singleResult.metrics.resourceUtilization.toFixed(1),
+      throughput: singleResult.metrics.throughput.toFixed(4),
+      di: di.toFixed(2),
+    };
+  }, [singleResult]);
+
   const hasResults = simulationSuccess && (compareResult || singleResult);
   const currentStep: Step = hasResults ? 4 : isLoading ? 3 : tasks.length > 0 ? 2 : 1;
 
@@ -222,23 +343,23 @@ export const SimulatorPage: React.FC = () => {
         {/* Page header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">
-              Cloud Scheduler Simulator
-            </h1>
+            <h1 className="page-title">Cloud Scheduler Simulator</h1>
             <p className="page-desc">
-              Define a workload, choose a scheduling method, and analyze results.
+              Configure cloud workloads, compare scheduling heuristics, and inspect datacenter telemetry in real time.
               <Tip text="Priority: 1–10 importance. Arrival Time: when task enters the simulation. Execution Time: how long it runs. Deadline: target completion time." />
             </p>
           </div>
-          {backendConnected === true && <span className="status-pill online"><span className="status-dot" />API Live</span>}
-          {backendConnected === false && <span className="status-pill offline"><span className="status-dot" />Backend Offline</span>}
-          {backendConnected === null && <span className="status-pill connecting"><span className="status-dot pulse" />Connecting…</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {backendConnected === true && <span className="status-pill online"><span className="status-dot" />API Live</span>}
+            {backendConnected === false && <span className="status-pill offline"><span className="status-dot" />Backend Offline</span>}
+            {backendConnected === null && <span className="status-pill connecting"><span className="status-dot pulse" />Connecting…</span>}
+          </div>
         </div>
 
         {/* Step indicator */}
         <StepBar current={currentStep} done={!!hasResults} />
 
-        {/* Error */}
+        {/* Error notification */}
         {errorMsg && (
           <div className="alert alert-error" style={{ marginBottom: 20 }}>
             <span className="alert-icon">
@@ -259,78 +380,100 @@ export const SimulatorPage: React.FC = () => {
           </div>
         )}
 
-        {/* Step 1: Workload */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-title">
-            <span>
-              <span className="step-badge">1</span>
-              Define Your Workload
-            </span>
-            <span className="badge badge-cyan">
-              {tasks.length} {tasks.length !== 1 ? 'tasks' : 'task'}
-            </span>
-          </div>
-          <p className="card-subtitle">
-            Tasks represent jobs submitted to the simulated cloud. Each needs a priority (1–10),
-            arrival time, execution time, and a deadline target.
-          </p>
-          <TaskInputTable
-            tasks={tasks}
-            onTasksChange={setTasks}
-            onLoadSample={handleLoadSample}
-            onLoadDemo={handleLoadDemo}
-            onOpenUploadModal={() => setIsCsvModalOpen(true)}
-            onReset={handleReset}
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Step 2: Scheduler */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-title">
-            <span>
-              <span className="step-badge">2</span>
-              Choose Scheduling Method
-            </span>
-          </div>
-          <p className="card-subtitle">
-            Select one scheduling algorithm or compare both using the same workload for a scientific analysis.
-          </p>
-          <AlgorithmSelector
-            selected={selectedAlgorithm}
-            onChange={setSelectedAlgorithm}
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Step 3: Run */}
-        <div className="run-sim-area" style={{ marginBottom: 20 }}>
-          <div style={{ position: 'relative', zIndex: 1, width: '100%', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
-              <span className="step-badge">3</span>
-              <div className="run-sim-title">Run Cloud Simulation</div>
+        {/* ── Steps 1, 2, 3: Interactive Simulator Control Deck ── */}
+        <div className="sim-config-grid">
+          {/* Step 1: Workload Studio (Left column) */}
+          <div className="sim-step-card sim-workload-studio">
+            <div className="card-title">
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <span className="step-badge">1</span>
+                Cloud Workload & Tasks
+              </span>
+              <span className="badge badge-cyan">
+                {tasks.length} {tasks.length !== 1 ? 'tasks' : 'task'}
+              </span>
             </div>
-            <p className="run-sim-desc">
-              Submit the workload to the CloudSim Plus engine and view full scheduling results.
+            <p className="card-subtitle">
+              Define arrival times, compute durations, and strict SLA deadlines for each cloudlet.
             </p>
-            <button
-              className="btn btn-primary btn-xl"
-              onClick={handleRunSimulation}
-              disabled={isLoading || tasks.length === 0}
-            >
-              {isLoading ? (
-                <><span className="spinner" /> Running Simulation…</>
-              ) : (
-                'Run Cloud Simulation'
-              )}
-            </button>
-            {tasks.length === 0 && !isLoading && (
-              <p style={{ marginTop: 12, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                Add tasks above before running the simulation.
+            <TaskInputTable
+              tasks={tasks}
+              onTasksChange={setTasks}
+              onLoadSample={handleLoadSample}
+              onLoadDemo={handleLoadDemo}
+              onSelectPreset={handleSelectPreset}
+              onOpenUploadModal={() => setIsCsvModalOpen(true)}
+              onReset={handleReset}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Execution Cockpit (Right column) */}
+          <div className="sim-execution-cockpit">
+            {/* Step 2: Scheduling Policy */}
+            <div className="sim-step-card">
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  <span className="step-badge">2</span>
+                  Scheduling Policy
+                </span>
+              </div>
+              <p className="card-subtitle">
+                Select baseline priority, proposed deadline-urgency, or compare both side-by-side.
               </p>
-            )}
+              <AlgorithmSelector
+                selected={selectedAlgorithm}
+                onChange={setSelectedAlgorithm}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Step 3: Cloud Engine & Launch Station */}
+            <div className="sim-step-card sim-run-station">
+              <div className="card-title">
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  <span className="step-badge">3</span>
+                  Simulation Engine
+                </span>
+                <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+                  CloudSim Plus v4.0
+                </span>
+              </div>
+              
+              <div className="engine-specs-pill">
+                <span>⚡ 4 Virtual Hosts</span>
+                <span>•</span>
+                <span>16 Cores</span>
+                <span>•</span>
+                <span>32 GB RAM</span>
+              </div>
+
+              <button
+                id="btn-run-simulation"
+                className="btn btn-primary btn-xl btn-run-hero"
+                onClick={handleRunSimulation}
+                disabled={isLoading || tasks.length === 0}
+              >
+                {isLoading ? (
+                  <><span className="spinner" /> Running Cloud Engine…</>
+                ) : (
+                  '🚀 Run Cloud Simulation'
+                )}
+              </button>
+
+              <div className="run-shortcuts-hint">
+                {tasks.length === 0 ? (
+                  <span>↑ Add tasks in Step 1 to enable execution</span>
+                ) : (
+                  <span>Shortcut: Press <kbd>Ctrl+Enter</kbd> to run</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Loading skeleton */}
+        {isLoading && <SimulationSkeleton />}
 
         {/* Success banner */}
         {simulationSuccess && (
@@ -340,103 +483,441 @@ export const SimulatorPage: React.FC = () => {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </span>
-            <span>Simulation completed successfully. Results are shown below.</span>
+            <span>Simulation executed successfully across virtual machines. Explore the tabbed analysis below.</span>
           </div>
         )}
 
-        {/* ── Step 4: Results ── */}
+        {/* ── Step 4: Results Dashboard ── */}
         <div ref={resultsRef} />
 
-        {/* COMPARE results */}
+        {/* COMPARE RESULTS DASHBOARD */}
         {selectedAlgorithm === 'COMPARE' && compareResult && (
           <section className="fade-in">
+            {/* Results Header */}
             <div className="results-header">
               <div>
-                <div className="section-label">Step 4 · Results</div>
-                <div className="results-title">Controlled Scheduler Comparison</div>
-                <div className="results-subtitle">Both schedulers ran on identical workloads. Review metrics and timelines below.</div>
+                <div className="section-label">Step 4 · Telemetry & Results</div>
+                <div className="results-title">Controlled Multi-Scheduler Comparison</div>
+                <div className="results-subtitle">
+                  Evaluated {tasks.length} cloud tasks under Standard Priority (Baseline) vs. Deadline-Aware (Proposed) heuristics.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  type="button"
+                >
+                  ↑ Modify Inputs
+                </button>
               </div>
             </div>
 
-            <SimulationOverview
-              baselineTasks={compareResult.baseline.tasks}
-              proposedTasks={compareResult.proposed.tasks}
-              baselineMetrics={compareResult.baseline.metrics}
-              proposedMetrics={compareResult.proposed.metrics}
-            />
-
-            <ComparisonTable comparisonData={compareResult} />
-
-            <MetricsCharts
-              baselineMetrics={compareResult.baseline.metrics}
-              proposedMetrics={compareResult.proposed.metrics}
-              baselineTasks={compareResult.baseline.tasks}
-              proposedTasks={compareResult.proposed.tasks}
-            />
-
-            <TechnicalDetails />
-
-            <TaskFilters
-              filters={filters}
-              onFilterChange={setFilters}
-              onResetFilters={() => setFilters(DEFAULT_FILTERS)}
-              availableVmIds={availableVmIds}
-            />
-
-            {/* Dual column */}
-            <div className="dual-col">
-              {/* Baseline column */}
-              <div>
-                <div className="dual-col-header baseline">
-                  <span>◈</span> Standard Priority
+            {/* KPI Highlight Strip */}
+            {kpiData && (
+              <div className="results-kpi-strip">
+                <div className="results-kpi-card accent-cyan">
+                  <div className="results-kpi-label">Makespan</div>
+                  <div className="results-kpi-val">{kpiData.msProp.toFixed(2)}s</div>
+                  <div className="results-kpi-sub">
+                    <span style={{ color: Number(kpiData.msDiffPct) >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+                      {Number(kpiData.msDiffPct) >= 0 ? `-${kpiData.msDiffPct}%` : `+${Math.abs(Number(kpiData.msDiffPct))}%`}
+                    </span> vs {kpiData.msBase.toFixed(2)}s baseline
+                  </div>
                 </div>
-                <MetricsCards metrics={compareResult.baseline.metrics} tasks={compareResult.baseline.tasks} title="Standard Priority Metrics" schedulerName="BASELINE" />
-                <DeadlineAnalysisView tasks={filteredBaselineTasks} title="Deadline Analysis" schedulerName="BASELINE" />
-                <VmUtilizationCards tasks={compareResult.baseline.tasks} makespan={compareResult.baseline.metrics.makespan} overallClusterUtilization={compareResult.baseline.metrics.resourceUtilization} />
-                <VmTimeline tasks={filteredBaselineTasks} makespan={compareResult.baseline.metrics.makespan} title="Execution Timeline" schedulerName="BASELINE" />
-                <TaskResultsTable tasks={filteredBaselineTasks} totalTasksCount={compareResult.baseline.tasks.length} title="Task Results" schedulerName="BASELINE" />
-              </div>
 
-              {/* Proposed column */}
-              <div>
-                <div className="dual-col-header proposed">
-                  <span>◆</span> Deadline-Aware
+                <div className="results-kpi-card accent-green">
+                  <div className="results-kpi-label">Deadline Compliance</div>
+                  <div className="results-kpi-val">{100 - Number(kpiData.missRateProp)}%</div>
+                  <div className="results-kpi-sub">
+                    <span style={{ color: 'var(--success)', fontWeight: 700 }}>
+                      {kpiData.missProp} missed
+                    </span> vs {kpiData.missBase} in baseline
+                  </div>
                 </div>
-                <MetricsCards metrics={compareResult.proposed.metrics} tasks={compareResult.proposed.tasks} title="Deadline-Aware Metrics" schedulerName="PROPOSED" />
-                <DeadlineAnalysisView tasks={filteredProposedTasks} title="Deadline Analysis" schedulerName="PROPOSED" />
-                <VmUtilizationCards tasks={compareResult.proposed.tasks} makespan={compareResult.proposed.metrics.makespan} overallClusterUtilization={compareResult.proposed.metrics.resourceUtilization} />
-                <VmTimeline tasks={filteredProposedTasks} makespan={compareResult.proposed.metrics.makespan} title="Execution Timeline" schedulerName="PROPOSED" />
-                <TaskResultsTable tasks={filteredProposedTasks} totalTasksCount={compareResult.proposed.tasks.length} title="Task Results" schedulerName="PROPOSED" />
+
+                <div className="results-kpi-card accent-purple">
+                  <div className="results-kpi-label">Degree of Imbalance</div>
+                  <div className="results-kpi-val">{kpiData.diProp}</div>
+                  <div className="results-kpi-sub">
+                    vs {kpiData.diBase} baseline (lower = better)
+                  </div>
+                </div>
+
+                <div className="results-kpi-card accent-amber">
+                  <div className="results-kpi-label">SLA Penalties Saved</div>
+                  <div className="results-kpi-val">${kpiData.costSaved}</div>
+                  <div className="results-kpi-sub">
+                    {kpiData.missedDiff > 0 ? `${kpiData.missedDiff} SLA breaches avoided` : 'Zero SLA violations'}
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Segmented Tab Navigation Bar */}
+            <div className="results-tab-bar" role="tablist">
+              <button
+                role="tab"
+                aria-selected={activeTab === 'overview'}
+                className={`results-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                <span>📊</span> Executive Overview
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'datacenter'}
+                className={`results-tab-btn ${activeTab === 'datacenter' ? 'active' : ''}`}
+                onClick={() => setActiveTab('datacenter')}
+              >
+                <span>☁️</span> Datacenter & Cost Model
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'timelines'}
+                className={`results-tab-btn ${activeTab === 'timelines' ? 'active' : ''}`}
+                onClick={() => setActiveTab('timelines')}
+              >
+                <span>⏱️</span> VM Timelines & Gantt
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'ledger'}
+                className={`results-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ledger')}
+              >
+                <span>📋</span> Task Execution Ledger
+                <span className="tab-badge">{filteredProposedTasks.length}</span>
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'charts'}
+                className={`results-tab-btn ${activeTab === 'charts' ? 'active' : ''}`}
+                onClick={() => setActiveTab('charts')}
+              >
+                <span>📈</span> Performance Charts & Math
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'all'}
+                className={`results-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                <span>🌐</span> All Views
+              </button>
             </div>
 
-            <ExportButtons tasks={compareResult.proposed.tasks} metricsRequest={exportMetricsPayload} />
+            {/* Tab 1: Executive Overview */}
+            {(activeTab === 'overview' || activeTab === 'all') && (
+              <div className="fade-in">
+                <InsightsBanner
+                  isCompare={true}
+                  baselineMetrics={compareResult.baseline.metrics}
+                  proposedMetrics={compareResult.proposed.metrics}
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                />
+                <SimulationOverview
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                  baselineMetrics={compareResult.baseline.metrics}
+                  proposedMetrics={compareResult.proposed.metrics}
+                />
+                <ComparisonTable comparisonData={compareResult} />
+                <GeminiAiAnalyst
+                  isCompare={true}
+                  baselineMetrics={compareResult.baseline.metrics}
+                  proposedMetrics={compareResult.proposed.metrics}
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                  tasksCount={tasks.length}
+                />
+              </div>
+            )}
+
+            {/* Tab 2: Datacenter & Cost Model */}
+            {(activeTab === 'datacenter' || activeTab === 'all') && (
+              <div className="fade-in">
+                <CloudDatacenterTopology
+                  tasks={compareResult.proposed.tasks}
+                  schedulerName="Deadline-Aware (Active Allocation)"
+                />
+                <CloudSlaAndCostView
+                  isCompare={true}
+                  baselineMetrics={compareResult.baseline.metrics}
+                  proposedMetrics={compareResult.proposed.metrics}
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                />
+                <CloudDegreeOfImbalance
+                  isCompare={true}
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                />
+              </div>
+            )}
+
+            {/* Tab 3: VM Timelines & Gantt */}
+            {(activeTab === 'timelines' || activeTab === 'all') && (
+              <div className="fade-in">
+                <div className="dual-col">
+                  {/* Baseline column */}
+                  <div>
+                    <div className="dual-col-header baseline">
+                      <span>◈</span> Standard Priority
+                    </div>
+                    <MetricsCards metrics={compareResult.baseline.metrics} tasks={compareResult.baseline.tasks} title="Standard Priority Metrics" schedulerName="BASELINE" />
+                    <DeadlineAnalysisView tasks={filteredBaselineTasks} title="Deadline Analysis" schedulerName="BASELINE" />
+                    <VmUtilizationCards tasks={compareResult.baseline.tasks} makespan={compareResult.baseline.metrics.makespan} overallClusterUtilization={compareResult.baseline.metrics.resourceUtilization} />
+                    <VmTimeline tasks={filteredBaselineTasks} makespan={compareResult.baseline.metrics.makespan} title="Execution Timeline" schedulerName="BASELINE" />
+                  </div>
+
+                  {/* Proposed column */}
+                  <div>
+                    <div className="dual-col-header proposed">
+                      <span>◆</span> Deadline-Aware
+                    </div>
+                    <MetricsCards metrics={compareResult.proposed.metrics} tasks={compareResult.proposed.tasks} title="Deadline-Aware Metrics" schedulerName="PROPOSED" />
+                    <DeadlineAnalysisView tasks={filteredProposedTasks} title="Deadline Analysis" schedulerName="PROPOSED" />
+                    <VmUtilizationCards tasks={compareResult.proposed.tasks} makespan={compareResult.proposed.metrics.makespan} overallClusterUtilization={compareResult.proposed.metrics.resourceUtilization} />
+                    <VmTimeline tasks={filteredProposedTasks} makespan={compareResult.proposed.metrics.makespan} title="Execution Timeline" schedulerName="PROPOSED" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 4: Task Execution Ledger */}
+            {(activeTab === 'ledger' || activeTab === 'all') && (
+              <div className="fade-in">
+                <TaskFilters
+                  filters={filters}
+                  onFilterChange={setFilters}
+                  onResetFilters={() => setFilters(DEFAULT_FILTERS)}
+                  availableVmIds={availableVmIds}
+                />
+                <div className="dual-col">
+                  <div>
+                    <div className="dual-col-header baseline">
+                      <span>◈</span> Standard Priority Task Ledger
+                    </div>
+                    <TaskResultsTable tasks={filteredBaselineTasks} totalTasksCount={compareResult.baseline.tasks.length} title="Task Results" schedulerName="BASELINE" />
+                  </div>
+                  <div>
+                    <div className="dual-col-header proposed">
+                      <span>◆</span> Deadline-Aware Task Ledger
+                    </div>
+                    <TaskResultsTable tasks={filteredProposedTasks} totalTasksCount={compareResult.proposed.tasks.length} title="Task Results" schedulerName="PROPOSED" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 5: Performance Charts & Technical Details */}
+            {(activeTab === 'charts' || activeTab === 'all') && (
+              <div className="fade-in">
+                <MetricsCharts
+                  baselineMetrics={compareResult.baseline.metrics}
+                  proposedMetrics={compareResult.proposed.metrics}
+                  baselineTasks={compareResult.baseline.tasks}
+                  proposedTasks={compareResult.proposed.tasks}
+                />
+                <TechnicalDetails />
+              </div>
+            )}
+
+            {/* Export Toolbar */}
+            <div style={{ marginTop: 24 }}>
+              <ExportButtons tasks={compareResult.proposed.tasks} metricsRequest={exportMetricsPayload} />
+            </div>
           </section>
         )}
 
-        {/* SINGLE result */}
+        {/* SINGLE RESULT DASHBOARD */}
         {selectedAlgorithm !== 'COMPARE' && singleResult && (
           <section className="fade-in">
             <div className="results-header">
               <div>
-                <div className="section-label">Step 4 · Results</div>
-                <div className="results-title">Simulation Results</div>
-                <div className="results-subtitle">
-                  Review how the {singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} scheduler executed your workload.
+                <div className="section-label">Step 4 · Telemetry & Results</div>
+                <div className="results-title">
+                  {singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware Simulation Results' : 'Standard Priority Simulation Results'}
                 </div>
+                <div className="results-subtitle">
+                  Workload of {singleResult.tasks.length} cloud tasks evaluated on CloudSim Plus virtual infrastructure.
+                </div>
+              </div>
+              <div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  type="button"
+                >
+                  ↑ Modify Inputs
+                </button>
               </div>
             </div>
 
-            <SimulationOverview singleTasks={singleResult.tasks} singleMetrics={singleResult.metrics} singleAlgorithmName={singleResult.algorithm} />
-            <MetricsCards metrics={singleResult.metrics} tasks={singleResult.tasks} schedulerName={singleResult.algorithm} />
-            <MetricsCharts singleMetrics={singleResult.metrics} singleTasks={singleResult.tasks} singleAlgorithmName={singleResult.algorithm} />
-            <TechnicalDetails />
-            <TaskFilters filters={filters} onFilterChange={setFilters} onResetFilters={() => setFilters(DEFAULT_FILTERS)} availableVmIds={availableVmIds} />
-            <DeadlineAnalysisView tasks={filteredSingleTasks} title={`${singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} Deadline Analysis`} schedulerName={singleResult.algorithm} />
-            <VmUtilizationCards tasks={singleResult.tasks} makespan={singleResult.metrics.makespan} overallClusterUtilization={singleResult.metrics.resourceUtilization} />
-            <VmTimeline tasks={filteredSingleTasks} makespan={singleResult.metrics.makespan} schedulerName={singleResult.algorithm} />
-            <TaskResultsTable tasks={filteredSingleTasks} totalTasksCount={singleResult.tasks.length} schedulerName={singleResult.algorithm} />
-            <ExportButtons tasks={singleResult.tasks} metricsRequest={exportMetricsPayload} />
+            {/* Single KPI Strip */}
+            {singleKpiData && (
+              <div className="results-kpi-strip">
+                <div className="results-kpi-card accent-cyan">
+                  <div className="results-kpi-label">Makespan</div>
+                  <div className="results-kpi-val">{singleKpiData.makespan}s</div>
+                  <div className="results-kpi-sub">Total time to execute workload</div>
+                </div>
+
+                <div className="results-kpi-card accent-green">
+                  <div className="results-kpi-label">Deadline Compliance</div>
+                  <div className="results-kpi-val">{100 - Number(singleKpiData.missRate)}%</div>
+                  <div className="results-kpi-sub">{singleKpiData.missedCount} SLA breaches observed</div>
+                </div>
+
+                <div className="results-kpi-card accent-purple">
+                  <div className="results-kpi-label">Cluster Utilization</div>
+                  <div className="results-kpi-val">{singleKpiData.utilization}%</div>
+                  <div className="results-kpi-sub">Average across 4 Virtual Machines</div>
+                </div>
+
+                <div className="results-kpi-card accent-amber">
+                  <div className="results-kpi-label">Throughput</div>
+                  <div className="results-kpi-val">{singleKpiData.throughput}</div>
+                  <div className="results-kpi-sub">Tasks completed per second</div>
+                </div>
+              </div>
+            )}
+
+            {/* Segmented Tab Navigation Bar */}
+            <div className="results-tab-bar" role="tablist">
+              <button
+                role="tab"
+                aria-selected={activeTab === 'overview'}
+                className={`results-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                <span>📊</span> Executive Overview
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'datacenter'}
+                className={`results-tab-btn ${activeTab === 'datacenter' ? 'active' : ''}`}
+                onClick={() => setActiveTab('datacenter')}
+              >
+                <span>☁️</span> Datacenter & Cost Model
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'timelines'}
+                className={`results-tab-btn ${activeTab === 'timelines' ? 'active' : ''}`}
+                onClick={() => setActiveTab('timelines')}
+              >
+                <span>⏱️</span> VM Timelines & Gantt
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'ledger'}
+                className={`results-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ledger')}
+              >
+                <span>📋</span> Task Execution Ledger
+                <span className="tab-badge">{filteredSingleTasks.length}</span>
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'charts'}
+                className={`results-tab-btn ${activeTab === 'charts' ? 'active' : ''}`}
+                onClick={() => setActiveTab('charts')}
+              >
+                <span>📈</span> Performance Charts & Math
+              </button>
+
+              <button
+                role="tab"
+                aria-selected={activeTab === 'all'}
+                className={`results-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                <span>🌐</span> All Views
+              </button>
+            </div>
+
+            {/* Tab 1: Executive Overview */}
+            {(activeTab === 'overview' || activeTab === 'all') && (
+              <div className="fade-in">
+                <InsightsBanner
+                  isCompare={false}
+                  singleMetrics={singleResult.metrics}
+                  singleAlgorithm={singleResult.algorithm}
+                  singleTasks={singleResult.tasks}
+                />
+                <SimulationOverview singleTasks={singleResult.tasks} singleMetrics={singleResult.metrics} singleAlgorithmName={singleResult.algorithm} />
+                <MetricsCards metrics={singleResult.metrics} tasks={singleResult.tasks} schedulerName={singleResult.algorithm} />
+                <GeminiAiAnalyst
+                  isCompare={false}
+                  singleMetrics={singleResult.metrics}
+                  singleAlgorithm={singleResult.algorithm}
+                  tasksCount={tasks.length}
+                />
+              </div>
+            )}
+
+            {/* Tab 2: Datacenter & Cost Model */}
+            {(activeTab === 'datacenter' || activeTab === 'all') && (
+              <div className="fade-in">
+                <CloudDatacenterTopology
+                  tasks={singleResult.tasks}
+                  schedulerName={singleResult.algorithm}
+                />
+                <CloudSlaAndCostView
+                  isCompare={false}
+                  singleMetrics={singleResult.metrics}
+                  singleAlgorithm={singleResult.algorithm}
+                  singleTasks={singleResult.tasks}
+                />
+                <CloudDegreeOfImbalance
+                  isCompare={false}
+                  singleTasks={singleResult.tasks}
+                  singleAlgorithm={singleResult.algorithm}
+                />
+              </div>
+            )}
+
+            {/* Tab 3: VM Timelines & Gantt */}
+            {(activeTab === 'timelines' || activeTab === 'all') && (
+              <div className="fade-in">
+                <DeadlineAnalysisView tasks={filteredSingleTasks} title={`${singleResult.algorithm === 'PROPOSED' ? 'Deadline-Aware' : 'Standard Priority'} Deadline Analysis`} schedulerName={singleResult.algorithm} />
+                <VmUtilizationCards tasks={singleResult.tasks} makespan={singleResult.metrics.makespan} overallClusterUtilization={singleResult.metrics.resourceUtilization} />
+                <VmTimeline tasks={filteredSingleTasks} makespan={singleResult.metrics.makespan} schedulerName={singleResult.algorithm} />
+              </div>
+            )}
+
+            {/* Tab 4: Task Execution Ledger */}
+            {(activeTab === 'ledger' || activeTab === 'all') && (
+              <div className="fade-in">
+                <TaskFilters filters={filters} onFilterChange={setFilters} onResetFilters={() => setFilters(DEFAULT_FILTERS)} availableVmIds={availableVmIds} />
+                <TaskResultsTable tasks={filteredSingleTasks} totalTasksCount={singleResult.tasks.length} schedulerName={singleResult.algorithm} />
+              </div>
+            )}
+
+            {/* Tab 5: Performance Charts & Math */}
+            {(activeTab === 'charts' || activeTab === 'all') && (
+              <div className="fade-in">
+                <MetricsCharts singleMetrics={singleResult.metrics} singleTasks={singleResult.tasks} singleAlgorithmName={singleResult.algorithm} />
+                <TechnicalDetails />
+              </div>
+            )}
+
+            {/* Export Toolbar */}
+            <div style={{ marginTop: 24 }}>
+              <ExportButtons tasks={singleResult.tasks} metricsRequest={exportMetricsPayload} />
+            </div>
           </section>
         )}
       </div>
@@ -448,6 +929,8 @@ export const SimulatorPage: React.FC = () => {
           setTasks(loadedTasks); setSingleResult(null); setCompareResult(null); setSimulationSuccess(false);
         }}
       />
+
+      <RunHistoryPanel history={history} />
     </main>
   );
 };

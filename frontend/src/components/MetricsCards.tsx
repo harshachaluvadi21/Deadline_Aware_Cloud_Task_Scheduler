@@ -1,6 +1,7 @@
 import React from 'react';
 import { MetricsDto, TaskResultDto } from '../types/simulation';
 import { computeDeadlineStats } from './DeadlineAnalysisView';
+import { AnimatedCounter } from './AnimatedCounter';
 
 interface MetricsCardsProps {
   metrics: MetricsDto;
@@ -17,45 +18,51 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ metrics, tasks, titl
     ? stats.missedRate
     : (metrics.deadlineMissRate > 1 ? metrics.deadlineMissRate : metrics.deadlineMissRate * 100);
 
-  const cards = [
+  const cards: Array<{
+    label: string;
+    value: React.ReactNode;
+    sub: string;
+    color: string;
+    title: string;
+  }> = [
     {
       label: 'Makespan',
-      value: `${metrics.makespan.toFixed(2)} s`,
+      value: <AnimatedCounter value={metrics.makespan} decimals={2} suffix=" s" />,
       sub: 'Total completion time',
       color: 'var(--cyan)',
       title: 'Time from simulation start until all tasks finish.',
     },
     {
       label: 'Avg. Waiting Time',
-      value: `${metrics.averageWaitingTime.toFixed(2)} s`,
+      value: <AnimatedCounter value={metrics.averageWaitingTime} decimals={2} suffix=" s" />,
       sub: 'Queue delay per task',
       color: 'var(--text-primary)',
       title: 'Average time tasks waited before execution began.',
     },
     {
       label: 'Avg. Turnaround',
-      value: `${metrics.averageTurnaroundTime.toFixed(2)} s`,
+      value: <AnimatedCounter value={metrics.averageTurnaroundTime} decimals={2} suffix=" s" />,
       sub: 'Wait + execution time',
       color: 'var(--text-primary)',
       title: 'Average time from task arrival until completion.',
     },
     {
       label: 'Throughput',
-      value: metrics.throughput.toFixed(4),
+      value: <AnimatedCounter value={metrics.throughput} decimals={4} />,
       sub: 'Tasks / second',
       color: 'var(--text-primary)',
       title: 'Completed tasks divided by total simulation time.',
     },
     {
       label: 'Deadline Miss Rate',
-      value: `${missRate.toFixed(1)}%`,
+      value: <AnimatedCounter value={missRate} decimals={1} suffix="%" />,
       sub: `${missedCount} of ${totalTasks} missed`,
       color: missedCount > 0 ? 'var(--danger)' : 'var(--success)',
       title: 'Percentage of tasks that finished after their deadline.',
     },
     {
       label: 'VM Utilization',
-      value: `${metrics.resourceUtilization.toFixed(1)}%`,
+      value: <AnimatedCounter value={metrics.resourceUtilization} decimals={1} suffix="%" />,
       sub: 'Resource usage',
       color: 'var(--violet)',
       title: 'Fraction of available VM execution capacity used.',
