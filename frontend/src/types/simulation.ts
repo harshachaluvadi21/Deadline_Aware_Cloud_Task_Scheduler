@@ -32,11 +32,23 @@ export interface MetricsDto {
   resourceUtilization: number;
 }
 
+export type ExecutionTarget = 'SIMULATION' | 'REAL_WORKER';
+
+export interface WorkerHealthResponse {
+  status: string;
+  worker?: string;
+  host?: string;
+  psutilAvailable?: boolean;
+  reachable: boolean;
+}
+
 export interface SimulateResponse {
   algorithm: string;
   tasks: TaskResultDto[];
   metrics: MetricsDto;
+  executionTarget?: ExecutionTarget;
 }
+
 
 export interface PairwiseComparisonDto {
   makespanDifference: number;

@@ -50,4 +50,15 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+    @ExceptionHandler(web.exception.CloudWorkerException.class)
+    public ResponseEntity<Map<String, Object>> handleCloudWorkerException(web.exception.CloudWorkerException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "Worker Unavailable");
+        body.put("messages", List.of(ex.getMessage()));
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
 }
+
+

@@ -108,6 +108,22 @@ Open your browser at **http://localhost:5173** to use the application.
 
 ---
 
+### 3. Real Worker Agent (Optional / Real Execution Mode)
+
+The system supports real CPU-bound workload execution via a FastAPI worker agent:
+
+* **Local:** `http://127.0.0.1:5000`
+  ```bash
+  cd aws/worker
+  pip install -r requirements.txt
+  python -m uvicorn worker_agent:app --host 127.0.0.1 --port 5000
+  ```
+* **Cloud:** Render public URL (deployed as a Render Free Web Service, configured via `CLOUD_WORKER_URL` environment variable).
+
+See [aws/worker/README.md](aws/worker/README.md) for full deployment and configuration instructions.
+
+---
+
 ## API Endpoints
 
 | Method | Endpoint | Description |

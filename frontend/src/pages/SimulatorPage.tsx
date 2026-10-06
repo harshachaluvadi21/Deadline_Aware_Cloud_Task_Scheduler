@@ -20,7 +20,7 @@ import { RunHistoryPanel, RunHistoryEntry } from '../components/RunHistoryPanel'
 import { PresetScenario } from '../data/presetWorkloads';
 import { ApiError, simulationApi } from '../services/api';
 import {
-  AlgorithmMode, CompareResponse, ExportMetricsRequest,
+  AlgorithmMode, CompareResponse, ExecutionTarget, ExportMetricsRequest,
   SimulateResponse, TaskDto, TaskResultDto,
 } from '../types/simulation';
 import { CloudDatacenterTopology } from '../components/CloudDatacenterTopology';
@@ -76,8 +76,10 @@ const Tip: React.FC<{ text: string }> = ({ text }) => {
 
 export const SimulatorPage: React.FC = () => {
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
+  const [workerOnline, setWorkerOnline] = useState<boolean | null>(null);
   const [tasks, setTasks] = useState<TaskDto[]>([]);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<AlgorithmMode>('COMPARE');
+  const [executionTarget, setExecutionTarget] = useState<ExecutionTarget>('SIMULATION');
   const [isLoading, setIsLoading] = useState(false);
   const [simulationSuccess, setSimulationSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -98,9 +100,16 @@ export const SimulatorPage: React.FC = () => {
       if (isUp) {
         try { const s = await simulationApi.getSampleWorkload(); setTasks(s); } catch { /* ignore */ }
       }
+      try {
+        const workerHealth = await simulationApi.checkWorkerHealth();
+        setWorkerOnline(workerHealth.reachable);
+      } catch {
+        setWorkerOnline(false);
+      }
     };
     init();
   }, []);
+
 
   useEffect(() => {
     if (simulationSuccess && resultsRef.current) {
@@ -197,7 +206,7 @@ export const SimulatorPage: React.FC = () => {
     setActiveTab('overview');
     try {
       if (selectedAlgorithm === 'COMPARE') {
-        const res = await simulationApi.compareSchedulers(tasks);
+        const res = await simulationApi.compareSchedulers(tasks, executionTarget);
         setCompareResult(res);
         setHistory(prev => [
           {
@@ -211,7 +220,7 @@ export const SimulatorPage: React.FC = () => {
           ...prev,
         ]);
       } else {
-        const res = await simulationApi.runSimulation(selectedAlgorithm, tasks);
+        const res = await simulationApi.runSimulation(selectedAlgorithm, tasks, executionTarget);
         setSingleResult(res);
         setHistory(prev => [
           {
@@ -448,6 +457,72 @@ export const SimulatorPage: React.FC = () => {
                 <span>32 GB RAM</span>
               </div>
 
+              {/* Execution Environment Selector */}
+              <div style={{ marginTop: 12, marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    Execution Environment
+                  </span>
+                  {workerOnline !== null && (
+                    <span style={{
+                      fontSize: '0.70rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: workerOnline ? 'var(--green, #22c55e)' : 'var(--red, #ef4444)'
+                    }}>
+                      <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: workerOnline ? 'var(--green, #22c55e)' : 'var(--red, #ef4444)',
+                        boxShadow: workerOnline ? '0 0 6px var(--green, #22c55e)' : 'none'
+                      }} />
+                      Worker Status: {workerOnline ? 'ONLINE' : 'OFFLINE'}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${executionTarget === 'SIMULATION' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ fontSize: '0.74rem', padding: '6px 8px', justifyContent: 'center' }}
+                    onClick={() => setExecutionTarget('SIMULATION')}
+                    disabled={isLoading}
+                  >
+                    ⚡ Simulation
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${executionTarget === 'REAL_WORKER' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ fontSize: '0.74rem', padding: '6px 8px', justifyContent: 'center' }}
+                    onClick={() => {
+                      setExecutionTarget('REAL_WORKER');
+                      simulationApi.checkWorkerHealth().then(h => setWorkerOnline(h.reachable));
+                    }}
+                    disabled={isLoading}
+                    title="Dispatch scheduled tasks to the configured real execution worker"
+                  >
+                    ⚙️ Real Worker
+                  </button>
+                </div>
+                {executionTarget === 'REAL_WORKER' && (
+                  <div style={{
+                    marginTop: 8,
+                    padding: '6px 10px',
+                    borderRadius: 'var(--r-sm)',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    fontSize: '0.72rem',
+                    color: 'var(--cyan)',
+                    lineHeight: 1.35
+                  }}>
+                    Tasks are dispatched to the configured real execution worker.
+                  </div>
+                )}
+              </div>
+
               <button
                 id="btn-run-simulation"
                 className="btn btn-primary btn-xl btn-run-hero"
@@ -455,9 +530,9 @@ export const SimulatorPage: React.FC = () => {
                 disabled={isLoading || tasks.length === 0}
               >
                 {isLoading ? (
-                  <><span className="spinner" /> Running Cloud Engine…</>
+                  <><span className="spinner" /> {executionTarget === 'REAL_WORKER' ? 'Executing on Real Worker…' : 'Running Simulation Engine…'}</>
                 ) : (
-                  '🚀 Run Cloud Simulation'
+                  executionTarget === 'REAL_WORKER' ? '⚙️ Run on Real Worker' : '🚀 Run Simulation'
                 )}
               </button>
 

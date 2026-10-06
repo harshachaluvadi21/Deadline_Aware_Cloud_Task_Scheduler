@@ -1,9 +1,11 @@
 import {
   CompareResponse,
+  ExecutionTarget,
   ExportMetricsRequest,
   SimulateResponse,
   TaskDto,
   TaskResultDto,
+  WorkerHealthResponse,
   WorkloadValidationResponse
 } from '../types/simulation';
 
@@ -64,28 +66,56 @@ export const simulationApi = {
     }
   },
 
+  async checkWorkerHealth(): Promise<WorkerHealthResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/worker/health`);
+      if (!response.ok) {
+        return { status: 'DOWN', reachable: false };
+      }
+      const data = await response.json();
+      return {
+        status: data.status || 'DOWN',
+        worker: data.worker,
+        host: data.host,
+        psutilAvailable: data.psutilAvailable,
+        reachable: data.reachable ?? (data.status === 'UP')
+      };
+    } catch {
+      return { status: 'DOWN', reachable: false };
+    }
+  },
+
+
   async getSampleWorkload(): Promise<TaskDto[]> {
     const response = await fetch(`${API_BASE}/sample-workload`);
     return handleResponse<TaskDto[]>(response);
   },
 
-  async runSimulation(algorithm: 'BASELINE' | 'PROPOSED', tasks: TaskDto[]): Promise<SimulateResponse> {
+  async runSimulation(
+    algorithm: 'BASELINE' | 'PROPOSED',
+    tasks: TaskDto[],
+    executionTarget: ExecutionTarget = 'SIMULATION'
+  ): Promise<SimulateResponse> {
     const response = await fetch(`${API_BASE}/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ algorithm, tasks })
+      body: JSON.stringify({ algorithm, tasks, executionTarget })
     });
     return handleResponse<SimulateResponse>(response);
   },
 
-  async compareSchedulers(tasks: TaskDto[]): Promise<CompareResponse> {
+  async compareSchedulers(
+    tasks: TaskDto[],
+    executionTarget: ExecutionTarget = 'SIMULATION'
+  ): Promise<CompareResponse> {
     const response = await fetch(`${API_BASE}/compare`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tasks })
+      body: JSON.stringify({ tasks, executionTarget })
     });
     return handleResponse<CompareResponse>(response);
   },
+
 
   async validateWorkloadCsv(file: File): Promise<WorkloadValidationResponse> {
     const formData = new FormData();

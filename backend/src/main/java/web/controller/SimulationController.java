@@ -36,14 +36,15 @@ public class SimulationController {
     @PostMapping("/simulate")
     public ResponseEntity<SimulateResponse> simulate(@Valid @RequestBody SimulateRequest request) {
         request.validate();
-        SimulateResponse response = simulationService.simulate(request.algorithm(), request.tasks());
+        SimulateResponse response = simulationService.simulate(request.algorithm(), request.tasks(), request.target());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/compare")
     public ResponseEntity<CompareResponse> compare(@Valid @RequestBody CompareRequest request) {
         request.validate();
-        CompareResponse response = simulationService.compare(request.tasks());
+        CompareResponse response = simulationService.compare(request.tasks(), request.target());
         return ResponseEntity.ok(response);
     }
 }
+
