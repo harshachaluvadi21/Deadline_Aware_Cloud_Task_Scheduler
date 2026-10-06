@@ -9,16 +9,16 @@
 
 ## Validation Execution Log
 
-- Generated new deterministic workload: normal_load_20_seed1001.csv
-- Generated new deterministic workload: normal_load_50_seed1001.csv
-- Generated new deterministic workload: normal_load_100_seed1001.csv
-- Generated new deterministic workload: high_load_20_seed2001.csv
-- Generated new deterministic workload: high_load_50_seed2001.csv
-- Generated new deterministic workload: high_load_100_seed2001.csv
-- Generated new deterministic workload: deadline_sensitive_20_seed3001.csv
-- Generated new deterministic workload: deadline_sensitive_50_seed3001.csv
-- Generated new deterministic workload: deadline_sensitive_100_seed3001.csv
-- Generated new deterministic workload: mixed_20_seed4001.csv
-- Generated new deterministic workload: mixed_50_seed4001.csv
-- Generated new deterministic workload: mixed_100_seed4001.csv
-- Reproducibility check on DEADLINE_SENSITIVE (100 tasks): PASSED
+- Loaded and verified existing workload: normal_load_20_seed1001.csv
+- Loaded and verified existing workload: normal_load_50_seed1001.csv
+- Loaded and verified existing workload: normal_load_100_seed1001.csv
+- Loaded and verified existing workload: high_load_20_seed2001.csv
+- Loaded and verified existing workload: high_load_50_seed2001.csv
+- Loaded and verified existing workload: high_load_100_seed2001.csv
+- Loaded and verified existing workload: deadline_sensitive_20_seed3001.csv
+- Loaded and verified existing workload: deadline_sensitive_50_seed3001.csv
+- Loaded and verified existing workload: deadline_sensitive_100_seed3001.csv
+- Loaded and verified existing workload: mixed_20_seed4001.csv
+- Loaded and verified existing workload: mixed_50_seed4001.csv
+- Loaded and verified existing workload: mixed_100_seed4001.csv
+- Reproducibility check on DEADLINE_SENSITIVE (100 tasks) with CloudSim: PASSED

@@ -32,6 +32,7 @@ Desktop.ini
 
 # Scratch / temp
 scratch/
+backend/results/cloudsim/
 
 # Local guide and explanation notes
 GUIDE_QUESTIONS_AND_ANSWERS.md

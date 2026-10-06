@@ -89,6 +89,45 @@ public class SimulationScenario {
         );
     }
 
+    /**
+     * Factory method creating a scenario tailored for the specified VM specifications,
+     * provisioning sufficient Host PEs, RAM, and bandwidth to guarantee successful allocation.
+     *
+     * @param vmSpecs list of VM specifications
+     * @return tailored SimulationScenario
+     */
+    public static SimulationScenario forVmSpecs(List<CloudVmSpec> vmSpecs) {
+        if (vmSpecs == null || vmSpecs.isEmpty()) {
+            throw new IllegalArgumentException("VM specifications cannot be null or empty");
+        }
+
+        long totalPes = vmSpecs.stream().mapToLong(CloudVmSpec::pesNumber).sum();
+        double maxVmMips = vmSpecs.stream().mapToDouble(CloudVmSpec::mips).max().orElse(1000.0);
+        double peMips = Math.max(3000.0, maxVmMips);
+        long totalRam = vmSpecs.stream().mapToLong(CloudVmSpec::ram).sum();
+        long totalBw = vmSpecs.stream().mapToLong(CloudVmSpec::bw).sum();
+        long totalStorage = vmSpecs.stream().mapToLong(CloudVmSpec::storage).sum();
+
+        int hostCount = Math.max(2, (int) Math.ceil((double) totalPes / 4.0));
+        int pesPerHost = (int) Math.ceil((double) totalPes / hostCount);
+        if (pesPerHost < 1) pesPerHost = 1;
+
+        long hostRam = Math.max(32768L, (long) Math.ceil((double) totalRam / hostCount) * 2);
+        long hostBw = Math.max(10000L, (long) Math.ceil((double) totalBw / hostCount) * 2);
+        long hostStorage = Math.max(1000000L, (long) Math.ceil((double) totalStorage / hostCount) * 2);
+
+        return new SimulationScenario(
+                hostCount,
+                pesPerHost,
+                peMips,
+                hostRam,
+                hostBw,
+                hostStorage,
+                0.0,
+                vmSpecs
+        );
+    }
+
     // Getters
     public int getHostCount() { return hostCount; }
     public int getPesPerHost() { return pesPerHost; }

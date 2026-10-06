@@ -244,6 +244,17 @@ public class Task {
         }
     }
 
+    /**
+     * Resets runtime state back to initial SUBMITTED status with unassigned VM and timestamps,
+     * allowing subsequent execution lifecycle recording (e.g., from CloudSim Plus results).
+     */
+    public void resetRuntimeState() {
+        this.status = TaskStatus.SUBMITTED;
+        this.startTime = -1.0;
+        this.completionTime = -1.0;
+        this.allocatedVmId = -1L;
+    }
+
     // ==========================================
     // Dynamic Priority (Scheduler Scoring)
     // ==========================================

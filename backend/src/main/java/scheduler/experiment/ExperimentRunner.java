@@ -86,15 +86,24 @@ public class ExperimentRunner {
 
         int vmCount = config.vms().size();
 
-        // 1. Run Baseline Scheduler on pristine clone
+        // 1. Run Baseline Scheduler (PAT Alg 1 + WTM + Fibonacci Heap) to derive VM assignment plan
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Starting Baseline experiment (Scenario: %s, Workload size: %d, Seed: %d)%n",
+                config.scenarioType(), config.taskCount(), config.seed());
         List<Task> baselineTasks = WorkloadGenerator.cloneWorkload(workload);
         BaselinePriorityScheduler baselineScheduler = new BaselinePriorityScheduler(config.vms(), config.referenceMips());
-        List<SchedulingResult> baselineRawResults = baselineScheduler.schedule(baselineTasks);
+        baselineScheduler.schedule(baselineTasks);
 
-        MetricsCalculator.MetricsSummary baselineMetrics = MetricsCalculator.calculateFromBaseline(baselineRawResults, vmCount);
-        List<TaskExecutionRecord> baselineRecords = baselineRawResults.stream()
-                .map(TaskExecutionRecord::fromBaseline)
-                .toList();
+        // Execute Baseline plan inside CloudSim Plus 8.0.0
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Creating CloudSim environment for Baseline (%d VMs)%n", vmCount);
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Converting %d tasks to Cloudlets & binding to scheduled VMs%n", baselineTasks.size());
+        scheduler.cloudsim.CloudSimEnvironment baselineEnv = new scheduler.cloudsim.CloudSimEnvironment(config.vms());
+        System.out.println("[EXPERIMENT] Starting CloudSim Plus simulation for Baseline");
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult baselineExec =
+                baselineEnv.execute(baselineTasks, baselineScheduler.getAssignments(), config.referenceMips());
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] CloudSim simulation completed for Baseline at clock %.2f%n", baselineExec.simulationClock());
+        System.out.println("[EXPERIMENT] Harvesting Cloudlet results & calculating metrics");
+
+        MetricsCalculator.MetricsSummary baselineMetrics = MetricsCalculator.calculate(baselineExec.records(), vmCount);
         ExperimentResult baselineResult = ExperimentResult.from(
                 config.scenarioType().name(),
                 config.taskCount(),
@@ -102,18 +111,27 @@ public class ExperimentRunner {
                 "BASELINE_IEEE_PRIORITY",
                 vmCount,
                 baselineMetrics,
-                baselineRecords
+                baselineExec.records()
         );
 
-        // 2. Run Proposed Scheduler on identical pristine clone
+        // 2. Run Proposed Scheduler (Deadline Urgency + Base Priority + Fibonacci Heap) to derive VM assignment plan
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Starting Proposed experiment (Scenario: %s, Workload size: %d, Seed: %d)%n",
+                config.scenarioType(), config.taskCount(), config.seed());
         List<Task> proposedTasks = WorkloadGenerator.cloneWorkload(workload);
         ProposedPriorityScheduler proposedScheduler = new ProposedPriorityScheduler(config.vms(), config.referenceMips());
-        List<ProposedSchedulingResult> proposedRawResults = proposedScheduler.schedule(proposedTasks);
+        proposedScheduler.schedule(proposedTasks);
 
-        MetricsCalculator.MetricsSummary proposedMetrics = MetricsCalculator.calculateFromProposed(proposedRawResults, vmCount);
-        List<TaskExecutionRecord> proposedRecords = proposedRawResults.stream()
-                .map(TaskExecutionRecord::fromProposed)
-                .toList();
+        // Execute Proposed plan inside CloudSim Plus 8.0.0
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Creating CloudSim environment for Proposed (%d VMs)%n", vmCount);
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] Converting %d tasks to Cloudlets & binding to scheduled VMs%n", proposedTasks.size());
+        scheduler.cloudsim.CloudSimEnvironment proposedEnv = new scheduler.cloudsim.CloudSimEnvironment(config.vms());
+        System.out.println("[EXPERIMENT] Starting CloudSim Plus simulation for Proposed");
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult proposedExec =
+                proposedEnv.execute(proposedTasks, proposedScheduler.getAssignments(), config.referenceMips());
+        System.out.printf(java.util.Locale.US, "[EXPERIMENT] CloudSim simulation completed for Proposed at clock %.2f%n", proposedExec.simulationClock());
+        System.out.println("[EXPERIMENT] Harvesting Cloudlet results & calculating metrics");
+
+        MetricsCalculator.MetricsSummary proposedMetrics = MetricsCalculator.calculate(proposedExec.records(), vmCount);
         ExperimentResult proposedResult = ExperimentResult.from(
                 config.scenarioType().name(),
                 config.taskCount(),
@@ -121,7 +139,7 @@ public class ExperimentRunner {
                 "PROPOSED_DEADLINE_AWARE",
                 vmCount,
                 proposedMetrics,
-                proposedRecords
+                proposedExec.records()
         );
 
         return new ExperimentPair(baselineResult, proposedResult);

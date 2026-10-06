@@ -95,10 +95,15 @@ public class SimulationService {
 
         if ("BASELINE".equals(algoUpper)) {
             BaselinePriorityScheduler scheduler = new BaselinePriorityScheduler(vms, DEFAULT_REFERENCE_MIPS);
-            List<SchedulingResult> results = scheduler.schedule(domainTasks);
-            MetricsCalculator.MetricsSummary summary = MetricsCalculator.calculateFromBaseline(results, vms.size());
+            scheduler.schedule(domainTasks);
 
-            List<TaskResultDto> taskResults = results.stream().map(r -> new TaskResultDto(
+            scheduler.cloudsim.CloudSimEnvironment env = new scheduler.cloudsim.CloudSimEnvironment(vms);
+            scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult execResult =
+                    env.execute(domainTasks, scheduler.getAssignments(), DEFAULT_REFERENCE_MIPS);
+
+            MetricsCalculator.MetricsSummary summary = MetricsCalculator.calculate(execResult.records(), vms.size());
+
+            List<TaskResultDto> taskResults = execResult.records().stream().map(r -> new TaskResultDto(
                     r.taskId(),
                     r.basePriority(),
                     r.arrivalTime(),
@@ -117,10 +122,15 @@ public class SimulationService {
 
         } else if ("PROPOSED".equals(algoUpper)) {
             ProposedPriorityScheduler scheduler = new ProposedPriorityScheduler(vms, DEFAULT_REFERENCE_MIPS);
-            List<ProposedSchedulingResult> results = scheduler.schedule(domainTasks);
-            MetricsCalculator.MetricsSummary summary = MetricsCalculator.calculateFromProposed(results, vms.size());
+            scheduler.schedule(domainTasks);
 
-            List<TaskResultDto> taskResults = results.stream().map(r -> new TaskResultDto(
+            scheduler.cloudsim.CloudSimEnvironment env = new scheduler.cloudsim.CloudSimEnvironment(vms);
+            scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult execResult =
+                    env.execute(domainTasks, scheduler.getAssignments(), DEFAULT_REFERENCE_MIPS);
+
+            MetricsCalculator.MetricsSummary summary = MetricsCalculator.calculate(execResult.records(), vms.size());
+
+            List<TaskResultDto> taskResults = execResult.records().stream().map(r -> new TaskResultDto(
                     r.taskId(),
                     r.basePriority(),
                     r.arrivalTime(),

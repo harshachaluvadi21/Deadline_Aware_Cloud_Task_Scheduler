@@ -26,6 +26,9 @@ import java.util.*;
  */
 public class CampaignRunner {
 
+    public static final String BENCHMARK_HEADER =
+            "Algorithm,WorkloadSize,Seed,TaskCount,Makespan,AverageWaitingTime,AverageTurnaroundTime,Throughput,DeadlineMissRate,DeadlineSuccessRate,ResourceUtilization";
+
     public static final String SUMMARY_HEADER =
             "scenario,taskCount,seed,scheduler,workloadFile,makespan,averageWaitingTime,averageTurnaroundTime,throughput,deadlineMissedCount,deadlineMissRate,completedTaskCount,totalTaskCount,resourceUtilization";
 
@@ -113,18 +116,22 @@ public class CampaignRunner {
                 List<Task> proposedInput = WorkloadGenerator.cloneWorkload(workload);
                 verifyPairwiseFairness(baselineInput, proposedInput, fileName);
 
-                // Phase 9.3: Run Baseline Scheduler
+                // Phase 9.3: Run Baseline Scheduler plan and execute in CloudSim Plus 8.0.0
                 BaselinePriorityScheduler baselineScheduler = new BaselinePriorityScheduler(vms, refMips);
-                List<SchedulingResult> baselineResults = baselineScheduler.schedule(baselineInput);
+                baselineScheduler.schedule(baselineInput);
                 schedulerRuns++;
 
+                scheduler.cloudsim.CloudSimEnvironment baselineEnv = new scheduler.cloudsim.CloudSimEnvironment(vms);
+                scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult baselineExec =
+                        baselineEnv.execute(baselineInput, baselineScheduler.getAssignments(), refMips);
+
                 MetricsCalculator.MetricsSummary baseMetrics =
-                        MetricsCalculator.calculateFromBaseline(baselineResults, vmCount);
+                        MetricsCalculator.calculate(baselineExec.records(), vmCount);
                 validateNumericalMetrics(baseMetrics, "BASELINE_" + fileName);
 
                 String baseTaskFile = "baseline_" + scenario.name().toLowerCase(Locale.US) + "_" + count + "_seed" + seed + ".csv";
                 Path baseTaskPath = taskDetailsDir.resolve(baseTaskFile);
-                List<String> baseTaskRows = formatBaselineTaskRows(scenario.name(), count, seed, baselineResults);
+                List<String> baseTaskRows = formatBaselineTaskRows(scenario.name(), count, seed, baselineExec.records());
                 writeLines(baseTaskPath, TASK_DETAILS_HEADER, baseTaskRows);
                 allTaskRows.addAll(baseTaskRows);
 
@@ -143,18 +150,22 @@ public class CampaignRunner {
                 );
                 summaryRows.add(baseSummaryRow);
 
-                // Phase 9.4: Run Proposed Scheduler
+                // Phase 9.4: Run Proposed Scheduler plan and execute in CloudSim Plus 8.0.0
                 ProposedPriorityScheduler proposedScheduler = new ProposedPriorityScheduler(vms, refMips);
                 List<ProposedSchedulingResult> proposedResults = proposedScheduler.schedule(proposedInput);
                 schedulerRuns++;
 
+                scheduler.cloudsim.CloudSimEnvironment proposedEnv = new scheduler.cloudsim.CloudSimEnvironment(vms);
+                scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult proposedExec =
+                        proposedEnv.execute(proposedInput, proposedScheduler.getAssignments(), refMips);
+
                 MetricsCalculator.MetricsSummary propMetrics =
-                        MetricsCalculator.calculateFromProposed(proposedResults, vmCount);
+                        MetricsCalculator.calculate(proposedExec.records(), vmCount);
                 validateNumericalMetrics(propMetrics, "PROPOSED_" + fileName);
 
                 String propTaskFile = "proposed_" + scenario.name().toLowerCase(Locale.US) + "_" + count + "_seed" + seed + ".csv";
                 Path propTaskPath = taskDetailsDir.resolve(propTaskFile);
-                List<String> propTaskRows = formatProposedTaskRows(scenario.name(), count, seed, proposedResults);
+                List<String> propTaskRows = formatProposedTaskRows(scenario.name(), count, seed, proposedExec.records(), proposedResults);
                 writeLines(propTaskPath, TASK_DETAILS_HEADER, propTaskRows);
                 allTaskRows.addAll(propTaskRows);
 
@@ -199,13 +210,36 @@ public class CampaignRunner {
         Path summaryCsvPath = summaryDir.resolve("raw_experiment_results.csv");
         writeLines(summaryCsvPath, SUMMARY_HEADER, summaryRows);
 
+        // Write Standard Benchmark CSV
+        List<String> benchmarkRows = new ArrayList<>();
+        for (String sRow : summaryRows) {
+            String[] p = sRow.split(",");
+            String scenarioName = p[0];
+            int tCount = Integer.parseInt(p[1]);
+            long seedVal = Long.parseLong(p[2]);
+            String alg = p[3];
+            double mspan = Double.parseDouble(p[5]);
+            double waitT = Double.parseDouble(p[6]);
+            double turnT = Double.parseDouble(p[7]);
+            double tput = Double.parseDouble(p[8]);
+            double missRate = Double.parseDouble(p[10]);
+            double successRate = Math.max(0.0, 1.0 - missRate);
+            double util = Double.parseDouble(p[13]);
+            benchmarkRows.add(String.format(Locale.US, "%s,%s,%d,%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+                    alg, scenarioName, seedVal, tCount, mspan, waitT, turnT, tput, missRate, successRate, util));
+        }
+        Path benchmarkCsvPath = summaryDir.resolve("cloudsim_benchmark_results.csv");
+        writeLines(benchmarkCsvPath, BENCHMARK_HEADER, benchmarkRows);
+        Path rootBenchmarkCsvPath = resultsDir.resolve("cloudsim_benchmark_results.csv");
+        writeLines(rootBenchmarkCsvPath, BENCHMARK_HEADER, benchmarkRows);
+
         // Write Combined Task Details CSV
         Path combinedTaskDetailsPath = taskDetailsDir.resolve("all_tasks_experiment_details.csv");
         writeLines(combinedTaskDetailsPath, TASK_DETAILS_HEADER, allTaskRows);
 
-        // Phase 9.11: Reproducibility Check on DEADLINE_SENSITIVE 100 tasks
+        // Phase 9.11: Reproducibility Check on DEADLINE_SENSITIVE 100 tasks executed through CloudSim
         boolean repCheck = runReproducibilityCheck(WorkloadScenarioType.DEADLINE_SENSITIVE, 100, vms, refMips);
-        validationLogs.add("Reproducibility check on DEADLINE_SENSITIVE (100 tasks): " + (repCheck ? "PASSED" : "FAILED"));
+        validationLogs.add("Reproducibility check on DEADLINE_SENSITIVE (100 tasks) with CloudSim: " + (repCheck ? "PASSED" : "FAILED"));
 
         // Write Workload Integrity & Validation Report
         Path integrityReportPath = validationDir.resolve("workload_integrity_report.md");
@@ -301,31 +335,45 @@ public class CampaignRunner {
     private static boolean runReproducibilityCheck(WorkloadScenarioType scenario, int count, List<CloudVmSpec> vms, double refMips) {
         List<Task> original = WorkloadGenerator.generateWorkload(scenario, count, scenario.getDefaultSeed());
 
-        // Run 1
+        // Run 1 - Baseline in CloudSim
         BaselinePriorityScheduler b1 = new BaselinePriorityScheduler(vms, refMips);
-        List<SchedulingResult> br1 = b1.schedule(WorkloadGenerator.cloneWorkload(original));
+        b1.schedule(WorkloadGenerator.cloneWorkload(original));
+        scheduler.cloudsim.CloudSimEnvironment bEnv1 = new scheduler.cloudsim.CloudSimEnvironment(vms);
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult br1 =
+                bEnv1.execute(WorkloadGenerator.cloneWorkload(original), b1.getAssignments(), refMips);
 
+        // Run 1 - Proposed in CloudSim
         ProposedPriorityScheduler p1 = new ProposedPriorityScheduler(vms, refMips);
-        List<ProposedSchedulingResult> pr1 = p1.schedule(WorkloadGenerator.cloneWorkload(original));
+        p1.schedule(WorkloadGenerator.cloneWorkload(original));
+        scheduler.cloudsim.CloudSimEnvironment pEnv1 = new scheduler.cloudsim.CloudSimEnvironment(vms);
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult pr1 =
+                pEnv1.execute(WorkloadGenerator.cloneWorkload(original), p1.getAssignments(), refMips);
 
-        // Run 2
+        // Run 2 - Baseline in CloudSim
         BaselinePriorityScheduler b2 = new BaselinePriorityScheduler(vms, refMips);
-        List<SchedulingResult> br2 = b2.schedule(WorkloadGenerator.cloneWorkload(original));
+        b2.schedule(WorkloadGenerator.cloneWorkload(original));
+        scheduler.cloudsim.CloudSimEnvironment bEnv2 = new scheduler.cloudsim.CloudSimEnvironment(vms);
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult br2 =
+                bEnv2.execute(WorkloadGenerator.cloneWorkload(original), b2.getAssignments(), refMips);
 
+        // Run 2 - Proposed in CloudSim
         ProposedPriorityScheduler p2 = new ProposedPriorityScheduler(vms, refMips);
-        List<ProposedSchedulingResult> pr2 = p2.schedule(WorkloadGenerator.cloneWorkload(original));
+        p2.schedule(WorkloadGenerator.cloneWorkload(original));
+        scheduler.cloudsim.CloudSimEnvironment pEnv2 = new scheduler.cloudsim.CloudSimEnvironment(vms);
+        scheduler.cloudsim.CloudSimEnvironment.CloudSimExecutionResult pr2 =
+                pEnv2.execute(WorkloadGenerator.cloneWorkload(original), p2.getAssignments(), refMips);
 
         for (int i = 0; i < count; i++) {
-            SchedulingResult r1 = br1.get(i);
-            SchedulingResult r2 = br2.get(i);
+            TaskExecutionRecord r1 = br1.records().get(i);
+            TaskExecutionRecord r2 = br2.records().get(i);
             if (r1.assignedVmId() != r2.assignedVmId() ||
                 Math.abs(r1.completionTime() - r2.completionTime()) > 1e-9 ||
                 r1.deadlineMissed() != r2.deadlineMissed()) {
                 return false;
             }
 
-            ProposedSchedulingResult prA = pr1.get(i);
-            ProposedSchedulingResult prB = pr2.get(i);
+            TaskExecutionRecord prA = pr1.records().get(i);
+            TaskExecutionRecord prB = pr2.records().get(i);
             if (prA.assignedVmId() != prB.assignedVmId() ||
                 Math.abs(prA.completionTime() - prB.completionTime()) > 1e-9 ||
                 prA.deadlineMissed() != prB.deadlineMissed()) {
@@ -335,9 +383,9 @@ public class CampaignRunner {
         return true;
     }
 
-    private static List<String> formatBaselineTaskRows(String scenario, int taskCount, long seed, List<SchedulingResult> results) {
+    private static List<String> formatBaselineTaskRows(String scenario, int taskCount, long seed, List<TaskExecutionRecord> results) {
         List<String> rows = new ArrayList<>(results.size());
-        for (SchedulingResult r : results) {
+        for (TaskExecutionRecord r : results) {
             rows.add(String.format(Locale.US,
                     "%s,%d,%d,IEEE_BASELINE,%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%b,%d,,,,,",
                     scenario, taskCount, seed,
@@ -349,11 +397,18 @@ public class CampaignRunner {
         return rows;
     }
 
-    private static List<String> formatProposedTaskRows(String scenario, int taskCount, long seed, List<ProposedSchedulingResult> results) {
-        List<String> rows = new ArrayList<>(results.size());
-        for (ProposedSchedulingResult r : results) {
+    private static List<String> formatProposedTaskRows(String scenario, int taskCount, long seed,
+            List<TaskExecutionRecord> records, List<ProposedSchedulingResult> proposedResults) {
+        Map<Long, ProposedSchedulingResult> resMap = new HashMap<>();
+        for (ProposedSchedulingResult pr : proposedResults) {
+            resMap.put(pr.taskId(), pr);
+        }
+        List<String> rows = new ArrayList<>(records.size());
+        for (TaskExecutionRecord r : records) {
+            ProposedSchedulingResult pr = resMap.get(r.taskId());
+            double finalScore = pr != null ? pr.finalScore() : r.dynamicScore();
             double baseScore = PriorityNormalization.normalize(r.basePriority());
-            double urgencyScore = r.deadlineUrgency();
+            double urgencyScore = pr != null ? pr.deadlineUrgency() : 0.0;
             double waitingScore = 1.0 - Math.exp(-r.waitingTime() / DeadlineAwarePriorityCalculator.DEFAULT_TAU_WAITING);
             double slack = r.deadline() - r.startTime() - r.executionTime();
 
@@ -363,7 +418,7 @@ public class CampaignRunner {
                     r.taskId(), r.basePriority(), r.arrivalTime(), r.executionTime(), r.deadline(),
                     r.startTime(), r.completionTime(), r.waitingTime(), r.turnaroundTime(),
                     r.deadlineMissed(), r.assignedVmId(),
-                    r.finalScore(), urgencyScore, waitingScore, baseScore, slack
+                    finalScore, urgencyScore, waitingScore, baseScore, slack
             ));
         }
         return rows;
