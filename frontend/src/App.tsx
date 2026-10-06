@@ -18,7 +18,17 @@ const AppContent: React.FC = () => {
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
-    simulationApi.healthCheck().then(setBackendConnected);
+    let isMounted = true;
+    const check = async () => {
+      const isUp = await simulationApi.healthCheck();
+      if (isMounted) setBackendConnected(isUp);
+    };
+    check();
+    const interval = setInterval(check, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (

@@ -95,20 +95,32 @@ export const SimulatorPage: React.FC = () => {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const init = async () => {
       const isUp = await simulationApi.healthCheck();
+      if (!isMounted) return;
       setBackendConnected(isUp);
       if (isUp) {
-        try { const s = await simulationApi.getSampleWorkload(); setTasks(s); } catch { /* ignore */ }
+        try {
+          const s = await simulationApi.getSampleWorkload();
+          if (isMounted) {
+            setTasks(prev => (prev.length === 0 ? s : prev));
+          }
+        } catch { /* ignore */ }
       }
       try {
         const workerHealth = await simulationApi.checkWorkerHealth();
-        setWorkerOnline(workerHealth.reachable);
+        if (isMounted) setWorkerOnline(workerHealth.reachable);
       } catch {
-        setWorkerOnline(false);
+        if (isMounted) setWorkerOnline(false);
       }
     };
     init();
+    const interval = setInterval(init, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
 

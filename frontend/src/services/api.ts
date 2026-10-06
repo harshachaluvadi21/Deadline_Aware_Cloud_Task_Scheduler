@@ -8,8 +8,16 @@ import {
   WorkerHealthResponse,
   WorkloadValidationResponse
 } from '../types/simulation';
+function resolveApiBase(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl || typeof envUrl !== 'string' || !envUrl.trim()) {
+    return '/api';
+  }
+  const clean = envUrl.trim().replace(/\/+$/, '');
+  return clean.endsWith('/api') ? clean : `${clean}/api`;
+}
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
+const API_BASE = resolveApiBase();
 
 export class ApiError extends Error {
   messages: string[];
