@@ -28,9 +28,7 @@ The Real Worker can run either locally or in the cloud on **Render Free**:
 | Environment | Base URL | How to Run |
 |-------------|----------|------------|
 | **Local** | `http://127.0.0.1:5000` | `uvicorn worker_agent:app --host 127.0.0.1 --port 5000` or `python worker_agent.py` |
-| **Cloud (Render Free)** | *Render public URL* (assigned upon Render Web Service creation) | Managed by Render (`uvicorn worker_agent:app --host 0.0.0.0 --port $PORT`) |
-
-> **Note on Cloud URL:** Do not assume or hardcode a pre-set Render URL. Render assigns a unique public URL in the format `https://<service-name>.onrender.com` when the service is created.
+| **Cloud (Render Free)** | `https://deadline-cloud-worker.onrender.com` | Managed by Render (`uvicorn worker_agent:app --host 0.0.0.0 --port $PORT`) |
 
 ### Backend Configuration
 
@@ -38,8 +36,9 @@ The Spring Boot backend endpoint is dynamically driven by the `CLOUD_WORKER_URL`
 ```properties
 cloud.worker.url=${CLOUD_WORKER_URL:http://127.0.0.1:5000}
 ```
-* **For Local Execution:** Keep the default `http://127.0.0.1:5000`.
-* **For Cloud Execution:** Set `CLOUD_WORKER_URL=<your-render-public-url>` in the backend's environment variables or `application.properties`.
+* **For Local Execution:** Keep the default `http://127.0.0.1:5000` (no environment variable required).
+* **For Cloud Execution:** Set `CLOUD_WORKER_URL=https://deadline-cloud-worker.onrender.com` in the backend's environment variables.
+
 
 ---
 
