@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { TaskInputTable } from '../components/TaskInputTable';
 import { AlgorithmSelector } from '../components/AlgorithmSelector';
 import { MetricsCards } from '../components/MetricsCards';
@@ -510,15 +511,22 @@ export const SimulatorPage: React.FC = () => {
                 {executionTarget === 'REAL_WORKER' && (
                   <div style={{
                     marginTop: 8,
-                    padding: '6px 10px',
+                    padding: '8px 10px',
                     borderRadius: 'var(--r-sm)',
                     background: 'rgba(56, 189, 248, 0.08)',
                     border: '1px solid rgba(56, 189, 248, 0.25)',
                     fontSize: '0.72rem',
                     color: 'var(--cyan)',
-                    lineHeight: 1.35
+                    lineHeight: 1.4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
                   }}>
-                    Tasks are dispatched to the configured real execution worker.
+                    <span>Tasks are scheduled first, then dispatched to the Render cloud worker for real CPU execution.</span>
+                    <Link to="/about" style={{ color: 'var(--accent)', textDecoration: 'underline', flexShrink: 0, fontWeight: 600 }}>
+                      How it works →
+                    </Link>
                   </div>
                 )}
               </div>

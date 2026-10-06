@@ -30,8 +30,8 @@ export const AboutPage: React.FC = () => {
             How It Works
           </h1>
           <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-            A complete guide to the scheduling algorithms, simulation environment, and evaluation metrics
-            used in this cloud task scheduling platform.
+            A complete guide to the deadline-aware scheduling algorithms, dual execution architecture
+            (discrete-event simulation vs. real cloud worker on Render), and evaluation metrics.
           </p>
         </div>
 
@@ -43,35 +43,72 @@ export const AboutPage: React.FC = () => {
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
               In cloud computing environments, multiple tasks arrive continuously and compete for
               limited virtual machine resources. Standard priority-based schedulers treat all tasks
-              with the same urgency regardless of their deadlines, leading to deadline violations
-              for time-sensitive workloads.
+              with the same static urgency regardless of their deadlines, leading to SLA violations
+              and costly deadline breaches for time-sensitive workloads.
             </p>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              This platform studies how incorporating deadline urgency into the scheduling score
-              affects performance across various metrics compared to a standard priority baseline.
+              This platform compares a standard priority baseline against an intelligent deadline-aware
+              scheduling heuristic that dynamically factors in deadline proximity, ensuring critical tasks
+              are executed before their service-level agreements expire.
             </p>
           </div>
         </section>
 
-        {/* Simulation Environment */}
+        {/* Dual Execution Environments */}
         <section className="about-section">
-          <h2 className="section-heading">Simulation Environment</h2>
-          <p className="section-subheading">Powered by CloudSim Plus</p>
-          <div className="about-grid">
-            {[
-              { num: '01', title: 'CloudSim Plus', text: 'Industry-standard Java cloud computing simulation framework used to model VM allocation and task execution.' },
-              { num: '02', title: 'Virtual Machines', text: 'The simulation uses 4 virtual machines (VM 0–3) with configurable MIPS ratings to process submitted tasks.' },
-              { num: '03', title: 'Task Model', text: 'Each task has a Task ID, Priority (1–10), Arrival Time, Execution Time, and Deadline.' },
-              { num: '04', title: 'Fibonacci Heap', text: 'A Fibonacci Heap data structure is used as the priority queue, providing efficient O(log n) task extraction.' },
-            ].map((c) => (
-              <div className="about-card" key={c.num}>
-                <div className="about-card-num">{c.num}</div>
-                <div className="about-card-title">{c.title}</div>
-                <div className="about-card-text">{c.text}</div>
+          <h2 className="section-heading">Dual Execution Architecture</h2>
+          <p className="section-subheading">Mathematical simulation and live cloud compute</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+            {/* Mode 1 */}
+            <div className="card" style={{ borderTop: '3px solid var(--accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>1. Simulation Mode</span>
+                <span className="badge badge-proposed">CloudSim Plus 8.0</span>
               </div>
-            ))}
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 14 }}>
+                Discrete-event mathematical simulation modeling a cloud datacenter with <strong>4 Virtual Machines (VM 0–3)</strong>.
+                Tasks execute in-memory with zero cloud network latency.
+              </p>
+              <ul style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: 18, margin: 0 }}>
+                <li>Deterministic, reproducible research benchmarks</li>
+                <li>Simulates multi-core cloud hosts with MIPS ratings</li>
+                <li>Ideal for rapid comparative evaluation of large workloads</li>
+                <li>Supports instant side-by-side algorithm comparison</li>
+              </ul>
+            </div>
+
+            {/* Mode 2 */}
+            <div className="card" style={{ borderTop: '3px solid #10b981' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>2. Real Cloud Worker Mode</span>
+                <span className="badge badge-baseline" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}>FastAPI · Render Free</span>
+              </div>
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 14 }}>
+                Dispatches scheduled tasks over HTTPS to a genuine Python FastAPI execution node deployed on <strong>Render Free</strong> (or a local worker fallback).
+              </p>
+              <ul style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, paddingLeft: 18, margin: 0 }}>
+                <li>Runs active SHA-256 cryptographic hashing to drive genuine CPU cycles</li>
+                <li>No simulated sleep; measures live wall-clock time and process CPU time</li>
+                <li>Streams real hardware telemetry (<code style={{ fontSize: '0.78rem' }}>psutil</code> utilization %) back to the backend</li>
+                <li>Strictly decoupled: backend decides order, worker strictly executes</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="card" style={{ background: 'rgba(255, 255, 255, 0.02)', borderColor: 'var(--border)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>🔒</span> Architectural Separation of Concerns
+            </div>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+              The real worker node does <strong>NOT</strong> make scheduling, priority, or deadline decisions.
+              The Spring Boot backend's deadline-aware scheduling algorithm calculates task urgency and computes
+              the complete task sequence <em>first</em>. Only then are tasks dispatched sequentially to the Render
+              cloud worker for genuine compute execution.
+            </p>
           </div>
         </section>
+
 
         {/* Scheduling Approaches */}
         <section className="about-section">
@@ -229,16 +266,16 @@ export const AboutPage: React.FC = () => {
 
         {/* Workflow */}
         <section className="about-section">
-          <h2 className="section-heading">Scheduling Workflow</h2>
-          <p className="section-subheading">Step-by-step process</p>
+          <h2 className="section-heading">End-to-End Workflow</h2>
+          <p className="section-subheading">From task submission to telemetry output</p>
           <div className="about-grid">
             {[
-              { num: '01', title: 'Task Arrival', text: 'Tasks enter the simulation at their specified arrival times and are added to the ready queue.' },
-              { num: '02', title: 'Score Calculation', text: 'Each task\'s scheduling score is computed using the selected algorithm\'s scoring formula.' },
-              { num: '03', title: 'Heap Insertion', text: 'Tasks are inserted into the Fibonacci Heap, which maintains ordering by score.' },
-              { num: '04', title: 'VM Assignment', text: 'The scheduler extracts the highest-priority task and assigns it to an available VM.' },
-              { num: '05', title: 'Execution', text: 'The VM executes the task. Completion time, waiting time, and deadline status are recorded.' },
-              { num: '06', title: 'Metrics Collection', text: 'After all tasks complete, aggregate metrics (makespan, throughput, etc.) are computed.' },
+              { num: '01', title: 'Task Ingestion', text: 'Workloads are entered manually, loaded via demo presets, or imported from CSV files with priority, arrival, execution, and deadline specs.' },
+              { num: '02', title: 'Urgency & Scoring', text: 'Each task\'s scheduling score is computed dynamically using either the Standard Priority baseline or the Proposed Deadline-Aware formula.' },
+              { num: '03', title: 'Fibonacci Heap Queue', text: 'Tasks are queued in a Fibonacci Heap structure, enabling O(1) amortized insertion and O(log n) highest-urgency extraction.' },
+              { num: '04', title: 'Target Routing', text: 'Tasks route to either the in-memory CloudSim Plus simulation engine or the live Render FastAPI worker via HTTPS.' },
+              { num: '05', title: 'Execution & Compute', text: 'Tasks run across simulated virtual machines or undergo real SHA-256 cryptographic hashing to drive actual CPU cycles.' },
+              { num: '06', title: 'Telemetry & Reporting', text: 'The backend captures wall-clock duration, CPU utilization, and timestamps to generate the Gantt chart and SLA metrics.' },
             ].map((c) => (
               <div className="about-card" key={c.num}>
                 <div className="about-card-num">{c.num}</div>
@@ -252,24 +289,25 @@ export const AboutPage: React.FC = () => {
         {/* Metrics */}
         <section className="about-section">
           <h2 className="section-heading">Evaluation Metrics</h2>
-          <p className="section-subheading">What the simulation measures</p>
+          <p className="section-subheading">What the platform measures across simulation and cloud runs</p>
           <div className="card">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Metric</th>
                   <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Description</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Unit</th>
+                  <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Unit / Scope</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  ['Makespan', 'Total time to complete all tasks', 'seconds'],
-                  ['Avg. Waiting Time', 'Average time tasks wait before execution', 'seconds'],
-                  ['Avg. Turnaround Time', 'Average from arrival to completion', 'seconds'],
-                  ['Throughput', 'Tasks completed per time unit', 'tasks/s'],
-                  ['Deadline Miss Rate', 'Fraction of tasks missing their deadline', '%'],
-                  ['VM Utilization', 'Fraction of VM capacity used', '%'],
+                  ['Makespan', 'Total elapsed time from first task arrival until the last task finishes', 'seconds'],
+                  ['Avg. Waiting Time', 'Average duration tasks spent waiting in queue prior to execution', 'seconds'],
+                  ['Avg. Turnaround Time', 'Average total time from task submission to completion (waiting + execution)', 'seconds'],
+                  ['Throughput', 'Number of completed tasks per unit time', 'tasks/s'],
+                  ['Deadline Miss Rate', 'Percentage of tasks that finished past their target deadline', '% (SLA Penalty)'],
+                  ['VM Utilization', 'Percentage of available virtual machine capacity actively utilized in simulation', '% (Simulation)'],
+                  ['CPU Utilization', 'Actual host core processing utilization measured via psutil telemetry', '% (Real Worker)'],
                 ].map(([m, d, u]) => (
                   <tr key={m}>
                     <td style={{ padding: '9px 12px', fontWeight: 600, color: 'var(--accent)', fontSize: '0.85rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{m}</td>

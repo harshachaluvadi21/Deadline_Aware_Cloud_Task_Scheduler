@@ -16,12 +16,12 @@ const features = [
     desc: 'Both schedulers use a Fibonacci Heap for task ordering, giving O(log n) extraction time for the highest-priority job in the ready queue.',
   },
   {
-    title: 'CloudSim Plus Engine',
-    desc: 'Runs on CloudSim Plus 8.0.0, simulating a 4-VM cloud datacenter. Each submitted task is assigned to a VM, executed, and measured against its deadline.',
+    title: 'Dual Execution Engines',
+    desc: 'Choose between CloudSim Plus 8.0.0 (simulating 4 cloud datacenter VMs) or a live FastAPI cloud worker on Render Free that executes genuine CPU-bound cryptographic workloads.',
   },
   {
     title: 'Six Performance Metrics',
-    desc: 'Reports makespan, average waiting time, average turnaround time, throughput, deadline miss rate, and VM utilization for every simulation run.',
+    desc: 'Reports makespan, average waiting time, average turnaround time, throughput, deadline miss rate, and host/VM utilization for every run.',
   },
   {
     title: 'Side-by-Side Comparison',
@@ -31,9 +31,9 @@ const features = [
 
 const steps = [
   { n: '1', title: 'Define tasks', desc: 'Enter tasks manually, load the built-in demo workload, or upload a CSV file. Each task has a priority, arrival time, execution time, and deadline.' },
-  { n: '2', title: 'Choose a scheduler', desc: 'Select Standard Priority, Deadline-Aware, or both. Running both produces a side-by-side comparison.' },
-  { n: '3', title: 'Run simulation', desc: 'The CloudSim Plus engine assigns tasks to VMs, tracks execution timing, and records whether each deadline was met.' },
-  { n: '4', title: 'Analyze results', desc: 'View per-VM execution timelines, deadline classification bars, utilization stats, and a full task results table.' },
+  { n: '2', title: 'Choose engine & scheduler', desc: 'Select Standard Priority, Deadline-Aware, or both. Choose between discrete-event simulation or real CPU execution on the Render cloud worker.' },
+  { n: '3', title: 'Execute workload', desc: 'The scheduler orders tasks first, then runs in-memory across 4 VMs or dispatches real CPU workloads to the cloud worker over HTTPS.' },
+  { n: '4', title: 'Analyze results', desc: 'View Gantt execution timelines, deadline compliance bars, CPU/VM utilization, and a full task results table.' },
   { n: '5', title: 'Export', desc: 'Download task results and metric summaries as CSV for offline analysis or academic reporting.' },
 ];
 
