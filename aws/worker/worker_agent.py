@@ -148,13 +148,32 @@ def execute_task(task: TaskPayload):
     # Ensure bounded representation
     cpu_utilization = round(min(100.0, max(5.0, calculated_cpu)), 2)
 
+    status = "COMPLETED"
+    start_time = round(start_wall, 3)
+    end_time = round(end_wall, 3)
+
+    # Print real execution telemetry to stdout for cloud visibility (captured by Render logs)
+    print(
+        "==================================================\n"
+        "REAL CLOUD WORKER EXECUTION\n"
+        "==================================================\n"
+        f"Task ID          : {task.taskId}\n"
+        f"Status           : {status}\n"
+        f"Execution Time   : {actual_duration} seconds\n"
+        f"CPU Utilization  : {cpu_utilization:.2f}%\n"
+        f"Start Time       : {start_time}\n"
+        f"End Time         : {end_time}\n"
+        "==================================================",
+        flush=True,
+    )
+
     return ExecutionResult(
         taskId=task.taskId,
-        status="COMPLETED",
+        status=status,
         actualExecutionTimeSeconds=actual_duration,
         cpuUtilization=cpu_utilization,
-        startTime=round(start_wall, 3),
-        endTime=round(end_wall, 3),
+        startTime=start_time,
+        endTime=end_time,
     )
 
 
