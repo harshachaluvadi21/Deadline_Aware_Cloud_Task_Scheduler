@@ -78,15 +78,17 @@ This document provides ready-to-deliver speaker notes designed for a 10-to-12 mi
 
 ---
 
-### Slide 8: Scheduling Workflow & Mathematical Model
+### Slide 8: Proposed Algorithm Workflow & Formulations
 **Speech (approx. 50 seconds):**
-> "Let us look at the mathematical formulation behind our proposed scheduler.
+> "Let us look at the mathematical formulation behind our proposed scheduler, which consists of three distinct components:
 >
-> The composite score $S(t)$ is a weighted sum: $0.35$ times the normalized base priority, plus $0.50$ times the deadline urgency, plus $0.15$ times the normalized waiting time.
+> First is the Dynamic Deadline Urgency Algorithm. It calculates Omega(t) using the remaining slack and burst execution time B, scaled by a numerical safety guard that prevents division by zero or negative values when tasks become overdue.
 >
-> The deadline urgency is modeled using an exponential decay function of slack divided by execution time, with a decay parameter $k$ set to 2.0. Slack represents the remaining time margin before a deadline miss becomes inevitable. If slack drops to zero or becomes negative, the urgency immediately clamps to its maximum value of 1.0.
+> Second is the Dynamic Priority Algorithm. It computes P(t) as 100 times the base priority, plus Omega(t), plus 10 times the queue waiting time. This keeps the user's base priority immutable while dynamically elevating urgent tasks and preventing queue starvation.
 >
-> This ensures that tasks nearing their deadlines receive an immediate, decisive boost in scheduling priority."
+> Third is the Persistent Fibonacci-Heap Scheduling Algorithm. We maintain a single persistent Min-Heap keyed by negative P(t). As time advances, waiting tasks are updated in-place via decreaseKey in O(1) amortized time, and the highest-priority task is dispatched via extractMin.
+>
+> We validate this using representative cloud workload types—such as Image Processing, Video Transcoding, and Database Queries—to reflect realistic computing demands."
 
 ---
 

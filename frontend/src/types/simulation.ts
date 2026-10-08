@@ -4,6 +4,7 @@ export interface TaskDto {
   arrivalTime: number;
   executionTime: number;
   deadline: number;
+  taskType?: string;
 }
 
 export interface TaskResultDto {

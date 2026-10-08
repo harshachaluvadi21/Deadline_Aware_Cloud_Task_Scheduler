@@ -13,6 +13,29 @@ interface TaskInputTableProps {
   disabled?: boolean;
 }
 
+export const CLOUD_TASK_CATEGORIES: string[] = [
+  'Image Processing',
+  'Video Transcoding',
+  'Database Query',
+  'ML Model Inference',
+  'Log Analysis',
+  'File Compression',
+  'Data Analytics',
+  'Backup Processing',
+  'Web Request Processing',
+  'ETL/Data Pipeline',
+  'Report Generation',
+  'Document Processing',
+];
+
+export function getTaskCategory(task: TaskDto, index: number): string {
+  if (task.taskType && typeof task.taskType === 'string' && task.taskType.trim().length > 0) {
+    return task.taskType.trim();
+  }
+  const safeId = Number.isInteger(task.taskId) && task.taskId >= 0 ? task.taskId : index;
+  return CLOUD_TASK_CATEGORIES[Math.abs(safeId) % CLOUD_TASK_CATEGORIES.length];
+}
+
 export const TaskInputTable: React.FC<TaskInputTableProps> = ({
   tasks, onTasksChange, onLoadSample, onLoadDemo, onSelectPreset, onOpenUploadModal, onReset, disabled,
 }) => {
@@ -24,7 +47,15 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
 
   const handleAddTask = () => {
     const nextId = tasks.length > 0 ? Math.max(...tasks.map(t => t.taskId)) + 1 : 0;
-    onTasksChange([...tasks, { taskId: nextId, priority: 5, arrivalTime: 0.0, executionTime: 10.0, deadline: 30.0 }]);
+    const nextCategory = CLOUD_TASK_CATEGORIES[nextId % CLOUD_TASK_CATEGORIES.length];
+    onTasksChange([...tasks, {
+      taskId: nextId,
+      priority: 5,
+      arrivalTime: 0.0,
+      executionTime: 10.0,
+      deadline: 30.0,
+      taskType: nextCategory,
+    }]);
   };
 
   const handleRemoveTask = (index: number) => {
@@ -73,8 +104,11 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
               width: 6,
               height: 6,
               borderRadius: '50%',
-              backgroundColor: preset.badge === 'High Urgency' ? '#f59e0b'
-                : preset.badge === 'Scientific Edge Case' ? '#38bdf8'
+              backgroundColor: (preset.badge === 'High Urgency' || preset.badge === 'Urgency Stress') ? '#f59e0b'
+                : preset.badge === 'Preemption' ? '#a855f7'
+                : preset.badge === 'Scale-Up' ? '#38bdf8'
+                : preset.badge === 'Control' ? '#94a3b8'
+                : preset.badge === 'Benchmark' ? '#6366f1'
                 : preset.badge === 'Heavy Load' ? '#ef4444' : '#10b981',
               display: 'inline-block',
               marginRight: 6,
@@ -140,7 +174,7 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
                   <th title="Unique identifier for the task" style={{ width: 85 }}>Task ID</th>
                   <th title="Task priority from 1 (lowest) to 10 (highest)" style={{ width: 100 }}>Priority (1–10)</th>
                   <th title="When the task enters the system (seconds)" style={{ width: 110 }}>Arrival (s)</th>
-                  <th title="Time required to run the task (seconds)" style={{ width: 110 }}>Exec Time (s)</th>
+                  <th title="Time required to run the task (seconds)" style={{ width: 120 }}>BURST TIME (S)</th>
                   <th title="Target completion time (seconds)" style={{ width: 110 }}>Deadline (s)</th>
                   <th style={{ textAlign: 'center', width: 60 }}>Action</th>
                 </tr>
@@ -155,6 +189,20 @@ export const TaskInputTable: React.FC<TaskInputTableProps> = ({
                         onChange={e => handleFieldChange(index, 'taskId', parseInt(e.target.value) || 0)}
                         disabled={disabled} min="0"
                       />
+                      <div
+                        style={{
+                          fontSize: '0.68rem',
+                          color: 'var(--cyan)',
+                          marginTop: 3,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          fontWeight: 500,
+                        }}
+                        title={getTaskCategory(task, index)}
+                      >
+                        {getTaskCategory(task, index)}
+                      </div>
                     </td>
                     <td>
                       <input

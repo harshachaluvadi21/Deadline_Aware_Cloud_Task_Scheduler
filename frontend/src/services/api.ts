@@ -104,10 +104,17 @@ export const simulationApi = {
     tasks: TaskDto[],
     executionTarget: ExecutionTarget = 'SIMULATION'
   ): Promise<SimulateResponse> {
+    const sanitizedTasks = tasks.map(t => ({
+      taskId: t.taskId,
+      priority: t.priority,
+      arrivalTime: t.arrivalTime,
+      executionTime: t.executionTime,
+      deadline: t.deadline
+    }));
     const response = await fetch(`${API_BASE}/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ algorithm, tasks, executionTarget })
+      body: JSON.stringify({ algorithm, tasks: sanitizedTasks, executionTarget })
     });
     return handleResponse<SimulateResponse>(response);
   },
@@ -116,10 +123,17 @@ export const simulationApi = {
     tasks: TaskDto[],
     executionTarget: ExecutionTarget = 'SIMULATION'
   ): Promise<CompareResponse> {
+    const sanitizedTasks = tasks.map(t => ({
+      taskId: t.taskId,
+      priority: t.priority,
+      arrivalTime: t.arrivalTime,
+      executionTime: t.executionTime,
+      deadline: t.deadline
+    }));
     const response = await fetch(`${API_BASE}/compare`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tasks, executionTarget })
+      body: JSON.stringify({ tasks: sanitizedTasks, executionTarget })
     });
     return handleResponse<CompareResponse>(response);
   },

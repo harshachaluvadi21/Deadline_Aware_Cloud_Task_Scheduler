@@ -7,8 +7,9 @@ import scheduler.model.Task;
  * produced by the Proposed Deadline-Aware Priority Scheduler.
  *
  * <p><b>[Project Design Decision]</b>
- * Captures comprehensive timing, execution parameters, and calculated score components
- * for downstream metric calculation (Makespan, Waiting Time, Turnaround, DMR, Utilization).
+ * Captures comprehensive timing, execution parameters, calculated score components,
+ * and preemption counts for downstream metric calculation (Makespan, Waiting Time,
+ * Turnaround, DMR, Utilization, and Preemption Count).
  */
 public record ProposedSchedulingResult(
     long taskId,
@@ -23,7 +24,8 @@ public record ProposedSchedulingResult(
     double finalScore,
     double deadlineUrgency,
     double deadline,
-    boolean deadlineMissed
+    boolean deadlineMissed,
+    int preemptionCount
 ) {
     /**
      * Compact constructor validating constraints.
@@ -37,10 +39,33 @@ public record ProposedSchedulingResult(
         if (!Double.isFinite(executionTime) || executionTime < 0.0) throw new IllegalArgumentException("Execution time must be >= 0");
         if (!Double.isFinite(waitingTime) || waitingTime < 0.0) throw new IllegalArgumentException("Waiting time must be >= 0");
         if (!Double.isFinite(turnaroundTime) || turnaroundTime < waitingTime) throw new IllegalArgumentException("Turnaround time cannot be < waiting time");
+        if (preemptionCount < 0) throw new IllegalArgumentException("Preemption count cannot be negative: " + preemptionCount);
     }
 
     /**
-     * Constructs a ProposedSchedulingResult from a finished task and its recorded score components.
+     * Backward-compatible 13-parameter constructor defaulting preemption count to 0.
+     */
+    public ProposedSchedulingResult(
+            long taskId,
+            long assignedVmId,
+            double arrivalTime,
+            double startTime,
+            double completionTime,
+            double executionTime,
+            double waitingTime,
+            double turnaroundTime,
+            int basePriority,
+            double finalScore,
+            double deadlineUrgency,
+            double deadline,
+            boolean deadlineMissed) {
+        this(taskId, assignedVmId, arrivalTime, startTime, completionTime, executionTime,
+             waitingTime, turnaroundTime, basePriority, finalScore, deadlineUrgency, deadline, deadlineMissed, 0);
+    }
+
+    /**
+     * Constructs a ProposedSchedulingResult from a finished task and its recorded score components,
+     * defaulting preemptionCount to 0.
      *
      * @param task            the finished Task
      * @param finalScore      the dynamic deadline-aware score calculated at dispatch
@@ -48,6 +73,20 @@ public record ProposedSchedulingResult(
      * @return populated ProposedSchedulingResult
      */
     public static ProposedSchedulingResult fromTask(Task task, double finalScore, double deadlineUrgency) {
+        return fromTask(task, finalScore, deadlineUrgency, 0);
+    }
+
+    /**
+     * Constructs a ProposedSchedulingResult from a finished task, recorded score components,
+     * and actual preemption count.
+     *
+     * @param task            the finished Task
+     * @param finalScore      the dynamic deadline-aware score calculated at dispatch
+     * @param deadlineUrgency the deadline urgency component calculated at dispatch
+     * @param preemptionCount the number of times this task was preempted
+     * @return populated ProposedSchedulingResult
+     */
+    public static ProposedSchedulingResult fromTask(Task task, double finalScore, double deadlineUrgency, int preemptionCount) {
         if (task == null) {
             throw new IllegalArgumentException("Task cannot be null");
         }
@@ -75,7 +114,8 @@ public record ProposedSchedulingResult(
             finalScore,
             deadlineUrgency,
             task.getDeadline(),
-            deadlineMissed
+            deadlineMissed,
+            preemptionCount
         );
     }
 }

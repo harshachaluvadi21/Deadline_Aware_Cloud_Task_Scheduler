@@ -57,31 +57,75 @@
   2. Dynamic Deadline Urgency ($U_{\text{deadline}}(t)$)
   3. Normalized Waiting Time ($W_{\text{wait}}(t)$)
 - **Urgency Modeling:** Exponential decay function based on remaining task slack relative to execution duration.
-- **Dynamic Heap Rebuilding:** Recomputes composite scores for all ready tasks at decision points to reflect clock progression accurately.
+- **Persistent Fibonacci Min-Heap:** Maintains a single persistent Min-Heap with $O(1)$ amortized `decreaseKey()` updates as simulation time advances, eliminating redundant heap reallocations.
 
 ---
 
 ### Slide 7: System Architecture
 - **Two-Tier Decoupled Architecture:**
-  1. **Research Experiment Layer (Frozen, Reproducible):**
-     - CloudSim Plus 8.0.0 simulation engine.
-     - Standalone min-oriented `FibonacciHeap<T>`.
-     - Controlled experimental framework with deep workload cloning.
+  1. **Simulation Kernel Layer:**
+     - CloudSim Plus 8.0.0 discrete-event cloud simulation engine.
+     - Standalone persistent min-oriented `FibonacciHeap<HeapKey, Task>`.
+     - Controlled experimental framework with identical workload dispatch to baseline and proposed schedulers.
   2. **Interactive Web Application Layer:**
      - Spring Boot 3.3.4 REST API backend.
      - React 18 + Vite + TypeScript interactive analytics dashboard.
-     - In-memory execution without touching frozen research campaign artifacts.
+     - Optional live worker agent for real physical CPU cryptographic hashing.
 
 ---
 
-### Slide 8: Scheduling Workflow & Mathematical Model
-- **Dynamic Priority Score Formula:**
-  $$S(t) = W_p \cdot P_{\text{norm}} + W_d \cdot U_{\text{deadline}}(t) + W_w \cdot W_{\text{wait}}(t)$$
-  - Initial Design Weights: $W_p = 0.35$, $W_d = 0.50$, $W_w = 0.15$
-- **Deadline Urgency:**
-  $$U_{\text{deadline}}(t) = \exp\left( -k \cdot \frac{\text{Slack}(t)}{\text{ExecutionTime}} \right)$$
-  where $\text{Slack}(t) = \text{Deadline} - (t + \text{ExecutionTime})$, with initial design parameter $k = 2.0$.
-- **Critical Urgency Clamp:** When $\text{Slack}(t) \le 0$, $U_{\text{deadline}}(t) = 1.0$.
+### Slide 8: Proposed Algorithm Workflow & Formulations
+
+#### 1. Proposed Algorithm Flowchart
+```
+Cloud Tasks
+    ↓
+Calculate Dynamic Deadline Urgency Ω(t)
+    ↓
+Calculate Dynamic Priority P(t)
+    ↓
+Insert into Persistent Fibonacci Heap
+    ↓
+Select Highest-Priority Task
+    ↓
+Execute Cloud Task
+    ↓
+Advance Simulation Time
+    ↓
+Recalculate P(t) for Waiting Tasks
+    ↓
+decreaseKey()
+    ↓
+Select Next Task
+    ↓
+Repeat until all tasks are completed
+```
+
+#### 2. Representative Cloud Workload Types
+*Standardized benchmark profiles (Task_ID, Task Type, Deadline, Burst Time, Priority, Waiting Time):*
+
+| Task ID | Task Type | Burst Time | Deadline | Base Priority |
+|:-------:|:----------|:----------:|:--------:|:-------------:|
+| **T1** | Image Processing | 8 s | 20 s | 3 |
+| **T2** | Video Transcoding | 15 s | 25 s | 5 |
+| **T3** | Database Query | 4 s | 12 s | 4 |
+| **T4** | ML Model Inference | 10 s | 18 s | 5 |
+| **T5** | Log Analysis | 6 s | 30 s | 2 |
+| **T6** | File Compression | 7 s | 22 s | 3 |
+| **T7** | Data Analytics | 12 s | 28 s | 4 |
+| **T8** | Backup Processing | 20 s | 45 s | 1 |
+
+*(Distinction: Representative cloud workload types provide reproducible benchmark scenarios; Real cloud execution refers to the Render-deployed live CPU worker agent).*
+
+#### 3. Mathematical Formulations
+- **Component 1 (Dynamic Deadline Urgency Algorithm):**
+  $$\Omega(t) = \left[ \frac{1000}{\text{EffectiveSlack}(t) + 1} \right] \times \left[ 1 + \frac{B}{D_{\text{effective}}(t) + 1} \right]$$
+  where $\text{Slack}(t) = (\text{deadline} - t) - B$, $\text{EffectiveSlack}(t) = \max(0, \text{Slack}(t))$, and $D_{\text{effective}}(t) = \max(0, \text{deadline} - t)$.
+- **Component 2 (Dynamic Priority Algorithm):**
+  $$P(t) = 100 \times \text{basePriority} + \Omega(t) + 10 \times W(t)$$
+  where $\text{basePriority}$ is immutable, and $W(t) = \max(0, t - \text{arrivalTime})$.
+- **Component 3 (Persistent Fibonacci-Heap Scheduling Algorithm):**
+  Persistent Min-Heap with key $(-P(t), \text{deadline}, \text{taskId})$, updated via `decreaseKey()` ($O(1)$ amortized) and dispatched via `extractMin()` ($O(\log n)$ amortized).
 
 ---
 

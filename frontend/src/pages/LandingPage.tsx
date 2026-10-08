@@ -55,19 +55,19 @@ const HeroPreview: React.FC = () => {
     { label: 'Utilization', value: '71.3%', sub: 'VM usage', color: 'var(--cyan)' },
   ];
 
-  // Simplified timeline: 4 VMs, task blocks as % of makespan
+  // Simplified timeline: 4 VMs, task blocks with representative cloud task types
   const vms = [
-    { id: 'VM 0', blocks: [{ left: '0%', width: '55%', color: '#3b82f6', label: 'T0' }] },
+    { id: 'VM 0', blocks: [{ left: '0%', width: '55%', color: '#3b82f6', label: 'T1: Image Proc' }] },
     { id: 'VM 1', blocks: [
-      { left: '3.5%', width: '28%', color: '#10b981', label: 'T1' },
-      { left: '36%', width: '23%', color: '#6366f1', label: 'T3' },
+      { left: '3.5%', width: '28%', color: '#10b981', label: 'T3: DB Query' },
+      { left: '36%', width: '23%', color: '#6366f1', label: 'T4: ML Inference' },
     ]},
     { id: 'VM 2', blocks: [
-      { left: '8.8%', width: '49%', color: '#f59e0b', label: 'T2' },
+      { left: '8.8%', width: '49%', color: '#f59e0b', label: 'T2: Video Transcode' },
     ]},
     { id: 'VM 3', blocks: [
-      { left: '21%', width: '22.5%', color: '#a855f7', label: 'T5' },
-      { left: '35%', width: '17.5%', color: '#0ea5e9', label: 'T7' },
+      { left: '21%', width: '22.5%', color: '#a855f7', label: 'T5: Log Analysis' },
+      { left: '35%', width: '17.5%', color: '#0ea5e9', label: 'T7: Analytics' },
     ]},
   ];
 

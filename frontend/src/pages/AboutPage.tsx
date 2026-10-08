@@ -141,31 +141,37 @@ export const AboutPage: React.FC = () => {
 
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span className="badge badge-proposed">Deadline-Aware</span>
+              <span className="badge badge-proposed">Proposed Algorithm</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Three-Component Architecture</span>
             </div>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-              The proposed scheduler adds a deadline urgency component to the multi-criteria score.
-              Tasks closer to their deadline receive a higher urgency value, influencing their
-              scheduling order.
+              The proposed scheduling framework consists of three formally defined and separated algorithms:
+              the <strong>Dynamic Deadline Urgency Algorithm</strong>, the <strong>Dynamic Priority Algorithm</strong>,
+              and the <strong>Persistent Fibonacci-Heap Scheduling Algorithm</strong>.
             </p>
+
+            {/* Formula Block */}
             <div
               style={{
                 background: 'var(--bg-glass)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
-                padding: '12px 16px',
+                padding: '14px 18px',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.82rem',
                 color: 'var(--accent)',
-                lineHeight: 1.7,
+                lineHeight: 1.8,
               }}
             >
-              Score = 0.35 × Priority<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ 0.50 × Deadline Urgency<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ 0.15 × Waiting Factor
+              <strong>1. Dynamic Deadline Urgency:</strong><br />
+              &nbsp;&nbsp;&nbsp;&nbsp;Ω(t) = [1000 / (EffectiveSlack(t) + 1)] × [1 + B / (D_effective(t) + 1)]<br />
+              <strong>2. Dynamic Priority:</strong><br />
+              &nbsp;&nbsp;&nbsp;&nbsp;P(t) = 100 × basePriority + Ω(t) + 10 × W(t)<br />
+              <strong>3. Persistent Fibonacci Min-Heap Key:</strong><br />
+              &nbsp;&nbsp;&nbsp;&nbsp;Key(t) = (-P(t), deadline, taskId)
             </div>
 
-            {/* Exact Mathematical Reasons for 0.35, 0.50, 0.15 */}
+            {/* Algorithmic Details */}
             <div
               style={{
                 marginTop: 16,
@@ -186,81 +192,87 @@ export const AboutPage: React.FC = () => {
                   gap: 8,
                 }}
               >
-                <span>📐</span> Exact Mathematical Derivation: Why Specifically 0.35, 0.50, and 0.15?
+                <span>📐</span> Algorithmic Formulation & Design Principles
               </div>
-
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
-                These values are not random guesses. They are mathematically derived from a system of <strong>4 boundary constraints</strong> and a <strong>70/30 remaining-budget partition</strong>:
-              </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Step 1 */}
                 <div style={{ background: 'var(--bg-glass)', padding: '10px 14px', borderRadius: '4px', borderLeft: '3px solid var(--accent)' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
-                    1. The 50% Operational Allocation (Why W<sub>d</sub> = 0.50)
+                    1. Dynamic Deadline Urgency Algorithm (Ω(t))
                   </div>
                   <div style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55 }}>
-                    Because the core research objective is <strong>Deadline-Awareness and SLA Breach Minimization</strong>, deadline urgency is assigned exactly <strong>50% (0.50)</strong> of the total decision space. This gives urgency primary operational authority whenever a task approaches its deadline.
+                    Evaluates slack <code>Slack(t) = (deadline − t) − B</code>. Urgency scales rapidly as slack vanishes and scales with burst execution time <code>B</code>. Overdue tasks are guarded by <code>D_effective(t) = max(0, D(t))</code>, preventing division by zero or negative denominators.
                   </div>
                 </div>
 
                 {/* Step 2 */}
                 <div style={{ background: 'var(--bg-glass)', padding: '10px 14px', borderRadius: '4px', borderLeft: '3px solid #10b981' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
-                    2. The 70/30 Non-Urgency Partition (Why W<sub>p</sub> = 0.35 and W<sub>w</sub> = 0.15)
+                    2. Dynamic Priority Algorithm (P(t))
                   </div>
                   <div style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55 }}>
-                    After allocating 0.50 to urgency, a remaining budget of <code>1.0 − 0.50 = 0.50</code> remains. To balance customer service tiers against queue fairness, this remaining budget is partitioned in a standard <strong>70% / 30%</strong> ratio:
-                    <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                      <li><strong>Base Priority (W<sub>p</sub>):</strong> <code>70% × 0.50 = 0.35</code> (maintains high priority when deadlines are safe).</li>
-                      <li><strong>Waiting Factor (W<sub>w</sub>):</strong> <code>30% × 0.50 = 0.15</code> (prevents queue starvation for older tasks).</li>
-                      <li><strong>Check:</strong> <code>0.50 + 0.35 + 0.15 = 1.00</code> (exact unit convex sum).</li>
-                    </ul>
+                    Combines immutable base priority (<code>100 × basePriority</code>), dynamic urgency <code>Ω(t)</code>, and queue waiting time <code>10 × W(t)</code>. The client's base priority is never mutated, while queue aging prevents low-priority starvation.
                   </div>
                 </div>
 
                 {/* Step 3 */}
                 <div style={{ background: 'var(--bg-glass)', padding: '10px 14px', borderRadius: '4px', borderLeft: '3px solid #f59e0b' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
-                    3. The Urgency Rescue Inequality (Why 0.50 &gt; 0.315)
+                    3. Persistent Fibonacci-Heap Scheduling Algorithm
                   </div>
                   <div style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55 }}>
-                    To mathematically guarantee that a critical task (even with lowest Priority 1, <code>P<sub>norm</sub> = 0.1</code>) can preempt a non-urgent task with highest Priority 10 (<code>P<sub>norm</sub> = 1.0</code>), the urgency weight must satisfy:
-                    <div style={{ fontFamily: 'var(--font-mono)', margin: '6px 0', padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 3, color: 'var(--accent)' }}>
-                      W<sub>d</sub> &gt; W<sub>p</sub> × (1.0 − 0.1) &nbsp;⟹&nbsp; W<sub>d</sub> &gt; 0.90 × W<sub>p</sub>
-                    </div>
-                    With <code>W<sub>p</sub> = 0.35</code>, the maximum base priority gap is <code>0.35 × 0.9 = 0.315</code>.<br />
-                    Since <code>W<sub>d</sub> = 0.50 &gt; 0.315</code>, the critical task receives <code>0.35(0.1) + 0.50(1.0) = 0.535</code> vs <code>0.35(1.0) + 0.50(0) = 0.350</code>. The rescue margin is <strong>+0.185</strong>, mathematically preventing false starvation.
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div style={{ background: 'var(--bg-glass)', padding: '10px 14px', borderRadius: '4px', borderLeft: '3px solid #8b5cf6' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
-                    4. Anti-Starvation Protection (Why W<sub>w</sub> = 0.15 is strictly smaller)
-                  </div>
-                  <div style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55 }}>
-                    If <code>W<sub>w</sub></code> were too large (e.g. 0.25+), aging tasks would displace actively urgent tasks. Setting <code>W<sub>w</sub> = 0.15</code> maintains the strict operational hierarchy:
-                    <div style={{ fontFamily: 'var(--font-mono)', margin: '6px 0', padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 3, color: 'var(--accent)' }}>
-                      W<sub>d</sub> (0.50) &gt; W<sub>p</sub> (0.35) &gt; W<sub>w</sub> (0.15)
-                    </div>
-                    This ensures aging never causes another task to breach its SLA deadline.
+                    A single persistent Min-Heap is maintained across the entire run. Minimizing <code>−P(t)</code> extracts the highest dynamic priority in <code>O(log n)</code> amortized time. Active waiting tasks are dynamically updated in-place via <code>decreaseKey()</code> in <code>O(1)</code> amortized time without destroying or rebuilding the heap.
                   </div>
                 </div>
               </div>
             </div>
 
-            <p
-              style={{
-                marginTop: 12,
-                fontSize: '0.78rem',
-                color: 'var(--text-muted)',
-                fontStyle: 'italic',
-              }}
-            >
-              Note: The weights (0.35 / 0.50 / 0.15) are calibrated project design parameters
-              that can also be customized dynamically for different cloud workload profiles.
-            </p>
+            {/* Workload Types Table */}
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ fontSize: '0.86rem', color: 'var(--text-primary)', marginBottom: 8 }}>
+                Representative Cloud Workload Types
+              </h4>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+                Format: <code>(Task_ID, Task Type, Deadline, Burst Time, Priority, Waiting Time)</code>. Evaluates realistic computational profiles:
+              </p>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '6px 8px' }}>Task ID</th>
+                      <th style={{ padding: '6px 8px' }}>Task Type</th>
+                      <th style={{ padding: '6px 8px' }}>Burst Time</th>
+                      <th style={{ padding: '6px 8px' }}>Deadline</th>
+                      <th style={{ padding: '6px 8px' }}>Base Priority</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['T1', 'Image Processing', '8 s', '20 s', '3'],
+                      ['T2', 'Video Transcoding', '15 s', '25 s', '5'],
+                      ['T3', 'Database Query', '4 s', '12 s', '4'],
+                      ['T4', 'ML Model Inference', '10 s', '18 s', '5'],
+                      ['T5', 'Log Analysis', '6 s', '30 s', '2'],
+                      ['T6', 'File Compression', '7 s', '22 s', '3'],
+                      ['T7', 'Data Analytics', '12 s', '28 s', '4'],
+                      ['T8', 'Backup Processing', '20 s', '45 s', '1'],
+                    ].map(([id, type, burst, dline, prio]) => (
+                      <tr key={id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--accent)' }}>{id}</td>
+                        <td style={{ padding: '6px 8px', color: 'var(--text-primary)' }}>{type}</td>
+                        <td style={{ padding: '6px 8px', color: 'var(--text-secondary)' }}>{burst}</td>
+                        <td style={{ padding: '6px 8px', color: 'var(--text-secondary)' }}>{dline}</td>
+                        <td style={{ padding: '6px 8px', color: 'var(--text-secondary)' }}>{prio}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ marginTop: 8, fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Note: Representative cloud workload types model standard computational profiles for reproducible simulation; real cloud execution is provided by the Render-deployed CPU worker service.
+              </p>
+            </div>
           </div>
         </section>
 

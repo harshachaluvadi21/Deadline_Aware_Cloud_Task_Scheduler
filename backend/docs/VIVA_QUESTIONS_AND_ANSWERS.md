@@ -62,44 +62,85 @@ $$\text{Slack}(t) = \text{Deadline} - (t + \text{ExecutionTime})$$
 - If $\text{Slack}(t) > 0$: The task can still meet its deadline if scheduled before the slack expires.
 - If $\text{Slack}(t) \le 0$: The task is in a *critical* state; if it does not begin immediately, it will miss its deadline.
 
-### Q12: What is the dynamic composite priority scoring formula?
+### Q12: How is the proposed dynamic deadline scheduling algorithm structured?
 **Answer:**
-The composite score $S(t)$ is formulated as:
-$$S(t) = W_p \cdot P_{\text{norm}} + W_d \cdot U_{\text{deadline}}(t) + W_w \cdot W_{\text{wait}}(t)$$
-where $P_{\text{norm}}$ is normalized base priority in $[0, 1]$, $U_{\text{deadline}}(t)$ is deadline urgency in $[0, 1]$, and $W_{\text{wait}}(t)$ is normalized waiting time.
+It is formally partitioned into three decoupled components:
+1. **Dynamic Deadline Urgency Algorithm** (`DeadlineUrgencyCalculator.java`): Computes $\Omega(t)$.
+2. **Dynamic Priority Algorithm** (`DeadlineAwarePriorityCalculator.java`): Computes dynamic priority $P(t)$.
+3. **Persistent Fibonacci-Heap Scheduling Algorithm** (`ProposedPriorityScheduler.java`): Manages execution via a persistent Min-Heap with in-place $O(1)$ amortized `decreaseKey()`.
 
-### Q13: What are the weights $W_p$, $W_d$, and $W_w$, and why were they chosen?
+### Q13: What is the Proposed Algorithm execution flowchart?
 **Answer:**
-The initial design weights are $W_p = 0.35$, $W_d = 0.50$, and $W_w = 0.15$.
-- $W_d = 0.50$ (50%) gives substantial weight to deadline urgency to prevent SLA violations.
-- $W_p = 0.35$ (35%) preserves user-specified priority tiers so high-paying or high-importance tasks retain prominence.
-- $W_w = 0.15$ (15%) accounts for queuing delay and prevents low-priority tasks with long deadlines from starving indefinitely.
-*(Note: These are initial design parameters established for controlled comparison, not claimed as globally optimal).*
+```
+Cloud Tasks
+    ↓
+Calculate Dynamic Deadline Urgency Ω(t)
+    ↓
+Calculate Dynamic Priority P(t)
+    ↓
+Insert into Persistent Fibonacci Heap
+    ↓
+Select Highest-Priority Task
+    ↓
+Execute Cloud Task
+    ↓
+Advance Simulation Time
+    ↓
+Recalculate P(t) for Waiting Tasks
+    ↓
+decreaseKey()
+    ↓
+Select Next Task
+    ↓
+Repeat until all tasks are completed
+```
 
-### Q14: How is the deadline urgency $U_{\text{deadline}}(t)$ calculated mathematically?
+### Q14: How is Dynamic Deadline Urgency $\Omega(t)$ calculated mathematically?
 **Answer:**
-It is modeled using an exponential decay function:
-$$U_{\text{deadline}}(t) = \exp\left( -k \cdot \frac{\text{Slack}(t)}{\text{ExecutionTime}} \right)$$
-When slack is large relative to execution time, urgency is near 0. As slack shrinks toward 0, urgency exponentially approaches 1.0. If $\text{Slack}(t) \le 0$, urgency clamps to 1.0.
+$$\Omega(t) = \left[ \frac{1000}{\text{EffectiveSlack}(t) + 1} \right] \times \left[ 1 + \frac{B}{D_{\text{effective}}(t) + 1} \right]$$
+where:
+- Remaining deadline: $D(t) = \text{deadline} - \text{currentTime}$
+- Burst/execution time: $B = \text{executionTime}$
+- Slack: $\text{Slack}(t) = D(t) - B$
+- Clamped slack: $\text{EffectiveSlack}(t) = \max(0.0, \, \text{Slack}(t))$
+- Clamped deadline (safety guard): $D_{\text{effective}}(t) = \max(0.0, \, D(t))$
 
-### Q15: What is the parameter $k = 2.0$, and why is it used?
+### Q15: Why is the denominator guard $D_{\text{effective}}(t) = \max(0.0, D(t))$ necessary?
 **Answer:**
-$k = 2.0$ is an initial project design parameter controlling the rate of urgency decay. A value of $2.0$ ensures that urgency rises moderately when slack equals execution time ($\exp(-2) \approx 0.135$) and accelerates rapidly as slack vanishes.
+When a task becomes overdue, $D(t) \le 0$. If $D(t) = -1.0$, direct evaluation of $D(t) + 1$ would cause division by zero; if $D(t) < -1.0$, it would yield an invalid negative burst multiplier. Clamping $D_{\text{effective}}(t) \ge 0.0$ guarantees that the denominator is strictly $\ge 1.0$ at all times, capping overdue burst factor safely at $(1 + B)$.
 
-### Q16: What is the parameter $\tau = 50.0$?
+### Q16: How is Dynamic Priority $P(t)$ calculated?
 **Answer:**
-$\tau = 50.0$ seconds is the normalization scale factor for waiting time:
-$$W_{\text{wait}}(t) = \min\left(1.0, \frac{\text{CurrentTime} - \text{ArrivalTime}}{\tau}\right)$$
-It ensures that after 50 seconds of waiting, the waiting component saturates to 1.0, preventing infinite starvation.
+$$P(t) = 100 \times \text{basePriority} + \Omega(t) + 10 \times W(t)$$
+where:
+- $\text{basePriority} = \text{task.getPriority()} \in [1, 10]$ is preserved and immutable.
+- $\Omega(t)$ is the output of the Dynamic Deadline Urgency Algorithm.
+- $W(t) = \max(0.0, \, \text{currentTime} - \text{arrivalTime})$ is elapsed queue waiting time, providing linear anti-starvation aging.
 
-### Q17: What happens when a task becomes "critical" or "overdue"?
+### Q17: What are the representative cloud workload types used in the demonstration and experiments?
 **Answer:**
-- **Critical ($\text{Slack}(t) \le 0$):** Urgency hits 1.0, elevating the task to maximum score within its priority bracket to expedite execution.
-- **Overdue ($\text{CurrentTime} \ge \text{Deadline}$):** The task is already past its deadline. Rather than dropping the task and wasting partial cloud compute or harming throughput, the system executes it to completion while strictly recording it as a deadline miss.
+Instead of generic abstract IDs (T1, T2, etc.), tasks represent realistic cloud workload types:
+Format: **(Task_ID, Task Type, Deadline, Burst Time, Priority, Waiting Time)**
 
-### Q18: Why does the proposed scheduler rebuild the Fibonacci Heap instead of using `decreaseKey`?
+| Task ID | Task Type | Burst Time | Deadline | Base Priority |
+|:-------:|:----------|:----------:|:--------:|:-------------:|
+| **T1** | Image Processing | 8 s | 20 s | 3 |
+| **T2** | Video Transcoding | 15 s | 25 s | 5 |
+| **T3** | Database Query | 4 s | 12 s | 4 |
+| **T4** | ML Model Inference | 10 s | 18 s | 5 |
+| **T5** | Log Analysis | 6 s | 30 s | 2 |
+| **T6** | File Compression | 7 s | 22 s | 3 |
+| **T7** | Data Analytics | 12 s | 28 s | 4 |
+| **T8** | Backup Processing | 20 s | 45 s | 1 |
+
+*(We distinguish representative cloud workload types used for simulation from real cloud execution provided by our Render-deployed live CPU worker agent).*
+
+### Q18: How does the Persistent Fibonacci-Heap Scheduling Algorithm operate without rebuilding?
 **Answer:**
-As simulation time progresses, task scores can both increase (due to shrinking slack and growing wait time) and decrease relative to newly arriving tasks. In a min-heap ordered by negated score, a higher score corresponds to a *smaller* key. However, if scores can fluctuate in both directions, simple `decreaseKey` is insufficient. Re-evaluating scores of ready tasks and rebuilding the heap ensures exact mathematical correctness at every dispatch decision.
+The scheduler maintains **ONE persistent Fibonacci Min-Heap** across the entire simulation run and an `activeNodes` map.
+- The heap key is $\text{HeapKey} = (-P(t), \text{deadline}, \text{taskId})$. Because the heap is a Min-Heap, minimizing $-P(t)$ selects the highest dynamic priority.
+- As simulation time advances, dynamic priorities are recalculated for active waiting tasks. If the new key is smaller, the scheduler calls `decreaseKey(node, updatedKey)` in $O(1)$ amortized time.
+- The highest-priority task is selected via `extractMin()` in $O(\log n)$ amortized time and dispatched non-preemptively. The heap is never destroyed or rebuilt.
 
 ---
 
